@@ -1,5 +1,8 @@
 
-FLAGS=-O2 -shared -fPIC
+FLAGS=-O3
+LIB_FLAGS=-shared -fPIC -Bsymbolic-functions -Wl,-z,now
+EXEC_FLAGS=-L./ -Wl,-rpath=./,-z,now
+
 
 .PHONY: all
 all: libChiSq.so tester
@@ -20,17 +23,18 @@ tester: ChiSqTester.c libChiSq.so ChiSquare.c ChiSquare.h
 	@echo ""
 	@echo "Building tester for shared library"
 	@echo ""
-	gcc -L./ -Wl,-rpath=./ ChiSqTester.c -O2 -o tester -lChiSq
+	gcc $(EXEC_FLAGS) $(FLAGS) ChiSqTester.c -o tester -lChiSq
 	@echo ""
 
 libChiSq.so: ChiSquare.c ChiSquare.h
 	@echo ""
 	@echo "Building shared library"
 	@echo ""
-	gcc $(FLAGS) ChiSquare.c -o libChiSq.so
+	gcc $(LIB_FLAGS) $(FLAGS) ChiSquare.c -o libChiSq.so
 	@echo ""
 
 .PHONY:clean
 clean:
 	-rm libChiSq.so
 	-rm tester
+
