@@ -11,19 +11,19 @@
 // divided by two and made negative to yield the log likelihood.
 // once this structure is created, the distributions loaded and the data loaded
 // it is not modified by the likelihood function calls
-struct MdaDataStruct
+typedef struct MdaDataStruct
 {
     //stores the number of data points
     int numPoints;
+    //stores the number of L values
+    int numLVals;
     //stores the predivided data points
     //contains numPoints cells
     float* data;
-    //stores the number of L values
-    int numLVals;
     //stores the set of interpolated distributions
     //contains numPoints*numLVals cells
     float* distArrays;
-};
+} MdaData;
 
 
 void* makeMdaStruct(int numPts, int numL);

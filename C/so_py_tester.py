@@ -1,13 +1,11 @@
-from ctypes import cdll
+from ctypes import *
 
-chi_sq_lib = cdll.LoadLibrary("./C/libChiSq.so")
+chi_sq_lib = cdll.LoadLibrary("./libChiSq.so")
 
-hello = chi_sq_lib.hello
+makeMdaStruct = chi_sq_lib.makeMdaStruct
 
-print hello("world")
+makeMdaStruct.restype = c_void_p
 
-from ctypes import c_char_p
+mdaData = makeMdaStruct(50,8)
 
-hello.restype = c_char_p
-
-print hello("world")
+print mdaData

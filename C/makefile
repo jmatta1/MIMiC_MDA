@@ -12,9 +12,10 @@ check: tester
 	@echo "Running C based tester"
 	@echo ""
 	@./tester
+	@echo ""
 	@echo "Running Python based tester"
 	@echo ""
-	@python so_py_tester
+	@python so_py_tester.py
 	@echo ""
 
 tester: ChiSqTester.c libChiSq.so ChiSquare.c ChiSquare.h

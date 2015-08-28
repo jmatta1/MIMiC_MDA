@@ -10,45 +10,45 @@
 
 void* makeMdaStruct(int numPts, int numL)
 {
-    MdaDataStruct* temp = (MdaDataStruct*) malloc(sizeof(MdaDataStruct));
+    MdaData* temp = (MdaData*) malloc(sizeof(MdaData));
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("MdaDataStruct is: %d bytes", sizeof(MdaDataStruct));
-    printf("MdaDataStruct is at: %d", temp);
+    printf("MdaDataStruct is: %d bytes\n", sizeof(MdaData));
+    printf("MdaDataStruct is at: %p\n", temp);
 #endif
     temp->numPoints = numPts;
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Number of points is: %d", numPts);
+    printf("Number of points is: %d\n", numPts);
 #endif
     temp->numLVals = numL;
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Number of L values is: %d", numL);
+    printf("Number of L values is: %d\n", numL);
 #endif
     temp->data = (float*) malloc(sizeof(float)*numPts);
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Data size is: %d byes", sizeof(float)*numPts);
-    printf("Data is at: %d", (int)temp->data);
+    printf("Data size is: %d byes\n", sizeof(float)*numPts);
+    printf("Data is at: %p\n", temp->data);
 #endif
     temp->distArrays = (float*) malloc(sizeof(float)*numPts*numL);
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Distribution size is: %d byes", sizeof(float)*numPts*numL);
-    printf("Distributions are at: %d", (int)temp->distArrays);
+    printf("Distribution size is: %d byes\n", sizeof(float)*numPts*numL);
+    printf("Distributions are at: %p\n", temp->distArrays);
 #endif
     return ((void*)temp);
 }
 
 void freeMdaStruct(void* strPtr)
 {
-    MdaDataStruct* temp = (MdaDataStruct*)strPtr;
+    MdaData* temp = (MdaData*)strPtr;
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Freeing the distributions");
+    printf("Freeing the distributions\n");
 #endif
     free(temp->distArrays);
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Freeing the data");
+    printf("Freeing the data\n");
 #endif
     free(temp->data);
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Freeing the structure");
+    printf("Freeing the structure\n");
 #endif
     free(temp);
 }
