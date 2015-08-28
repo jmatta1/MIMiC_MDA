@@ -9,7 +9,12 @@ check: tester
 	@echo ""
 	@echo "Commencing testing of shared library"
 	@echo ""
+	@echo "Running C based tester"
+	@echo ""
 	@./tester
+	@echo "Running Python based tester"
+	@echo ""
+	@python so_py_tester
 	@echo ""
 
 tester: ChiSqTester.c libChiSq.so ChiSquare.c ChiSquare.h
