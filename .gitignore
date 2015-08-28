@@ -5,7 +5,7 @@ __pycache__/
 # C extensions
 *.so
 # C testing file
-./C/tester
+*tester
 
 # Distribution / packaging
 .Python
