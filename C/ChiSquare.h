@@ -9,6 +9,8 @@
 // rule fraction, then those points are subtracted from the data, the residuals
 // are summed and finally the squared residuals are summed, this sum is then
 // divided by two and made negative to yield the log likelihood.
+// once this structure is created, the distributions loaded and the data loaded
+// it is not modified by the likelihood function calls
 struct MdaDataStruct
 {
     //stores the number of data points
@@ -24,7 +26,7 @@ struct MdaDataStruct
 };
 
 
-void* initMdaStruct(int numPts, int numL);
+void* makeMdaStruct(int numPts, int numL);
 
 void freeMdaStruct(void* strPtr);
 
