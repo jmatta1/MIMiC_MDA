@@ -22,7 +22,7 @@ tester: ChiSqTester.c libChiSq.so ChiSquare.c ChiSquare.h
 	@echo ""
 	@echo "Building tester for shared library"
 	@echo ""
-	gcc -L./ -Wl,-rpath=./ ChiSqTester.c -o tester -lChiSq
+	gcc -L./ -Wl,-rpath=./ ChiSqTester.c -O2 -o tester -lChiSq
 	@echo ""
 
 libChiSq.so: ChiSquare.c ChiSquare.h

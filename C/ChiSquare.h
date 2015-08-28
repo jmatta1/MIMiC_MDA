@@ -14,20 +14,24 @@
 typedef struct MdaDataStruct
 {
     //stores the number of data points
-    int numPoints;
+    int numPts;
     //stores the number of L values
-    int numLVals;
+    int numLs;
     //stores the predivided data points
     //contains numPoints cells
     float* data;
     //stores the set of interpolated distributions
     //contains numPoints*numLVals cells
-    float* distArrays;
+    float* dists;
 } MdaData;
 
-
+//allocate the structure
 void* makeMdaStruct(int numPts, int numL);
 
+//deallocate the structure
 void freeMdaStruct(void* strPtr);
+
+//assign the data array
+void setData(void* strPtr, float* divData);
 
 #endif  // MDA_MCMC_C_CHI_SQUARE_H
