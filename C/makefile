@@ -10,11 +10,9 @@ check: tester
 	@echo "Commencing testing of shared library"
 	@echo ""
 	@echo "Running C based tester"
-	@echo ""
 	@./tester
 	@echo ""
 	@echo "Running Python based tester"
-	@echo ""
 	@python so_py_tester.py
 	@echo ""
 
