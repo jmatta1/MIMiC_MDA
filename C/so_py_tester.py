@@ -19,7 +19,7 @@ def main():
     divDat = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], np.float32)
     #run the function to load the array into the struct
     t1 = time.time()
-    cs_lib.setData(mdaData, divDat.ctypes.data)
+    cs_lib.setMdaData(mdaData, divDat.ctypes.data)
     t2 = time.time()
     print "set data, took", int((t2-t1)*1000000), "microseconds"
     #free the structure

@@ -9,7 +9,7 @@
 #include<stdlib.h>
 
 
-void* makeMdaStruct(int numPts, int numL)
+__attribute__((malloc)) void* makeMdaStruct(int numPts, int numL)
 {
     MdaData* temp = (MdaData*) malloc(sizeof(MdaData));
     temp->numPts = numPts;
@@ -46,7 +46,7 @@ void freeMdaStruct(void* strPtr)
     free(temp);
 }
 
-void setData(void* strPtr, float* divData)
+void setMdaData(void* strPtr, float* divData)
 {
     MdaData* data = (MdaData*)strPtr;
 #ifdef ASSIGN_DATA_OUTPUT

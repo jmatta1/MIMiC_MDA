@@ -8,9 +8,11 @@ int main(int argc, char* argv[])
     t1=clock();
     long long int diff;
     printf("starting C testing\n");
+    MdaData* dataPtr = makeMdaStruct(10, 3);
+    freeMdaStruct(dataPtr);
     //test the allocate function
     t1 = clock();
-    MdaData* dataPtr = makeMdaStruct(10, 3);
+    dataPtr = makeMdaStruct(10, 3);
     t2 = clock();
     diff = (((t2-t1)*1000000)/CLOCKS_PER_SEC);
     printf("make struct, took: %d microseconds\n", diff);
@@ -20,7 +22,7 @@ int main(int argc, char* argv[])
     
     //test the set data function
     t1 = clock();
-    setData(dataPtr, testArr);
+    setMdaData(dataPtr, testArr);
     t2 = clock();
     diff = (((t2-t1)*1000000)/CLOCKS_PER_SEC);
     printf("set data, took: %d microseconds\n", diff);
