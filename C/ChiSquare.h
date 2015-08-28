@@ -23,6 +23,8 @@ typedef struct MdaDataStruct
     //stores the set of interpolated distributions
     //contains numPoints*numLVals cells
     float* dists;
+    //stores the list of residuals needed on a temporary basis
+    float* resids;
 } MdaData;
 
 //allocate the structure
@@ -33,5 +35,11 @@ void freeMdaStruct(void* strPtr);
 
 //assign the data array
 void setMdaData(void* strPtr, float* divData);
+
+//assign one of the distributions
+void setMdaDist(void* strPtr, int distIndex, float* dist);
+
+//calculate the chi^2
+float calculateChi(void* strPtr, float* params);
 
 #endif  // MDA_MCMC_C_CHI_SQUARE_H
