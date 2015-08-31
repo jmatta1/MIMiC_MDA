@@ -40,11 +40,10 @@ SAMPLES_ERROR = """
 WARNING: the number of samples:
 %d = ((%d - 50) * %d)
 is not large enough to ensure 10 points outside of each error bar location
-for the given confidence interval.
-
-the minimum number of samples necessary is:
-
+for the given confidence interval. The minimum number of samples necessary is:
 %d = ceiling[ 10 / ((1.0 - %12.10f) / 2.0))
+
+For more information look at the mda_config.py file.
 """
 
 
