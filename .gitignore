@@ -9,3 +9,4 @@ __pycache__/
 
 # distributions for fitting
 dist/
+*.csv
