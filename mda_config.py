@@ -3,6 +3,7 @@ the parameters needed for the code to run using names that are human readable
 and is intended to be user editable"""
 
 # This is the dictionary that stores configuration information
+# Below are all the user modifiable configuration options
 CONFIGURATION = {}
 
 # path to the shared library that contains the compiled routines for fast calc
@@ -14,6 +15,12 @@ CONFIGURATION["Shared Lib Path"] = "./C/libChiSq.so"
 CONFIGURATION["Input File Path"] = "./58Ni_cefatz_en_row_decomp.csv"
 # path to the directory that contains the dwba GR distributions for 100% EWSR
 CONFIGURATION["Distribution Directory"] = "./dist/"
+
+# Information about outputs from the program
+# path to the directory that will hold the distribution outputs
+CONFIGURATION["Fit Directory"] = "./fits/"
+# file to hold the fitted parameters
+CONFIGURATION["Parameter File"] = "./output.csv"
 
 
 # Information about the target nucleus
