@@ -11,7 +11,7 @@ CONFIGURATION["Shared Lib Path"] = "./C/libChiSq.so"
 
 # Information about inputs to the program
 # path to the file containing the experimental data
-CONFIGURATION["Input File Path"] = "./test.csv"
+CONFIGURATION["Input File Path"] = "./58Ni_cefatz_en_row_decomp.csv"
 # path to the directory that contains the dwba GR distributions for 100% EWSR
 CONFIGURATION["Distribution Directory"] = "./dist/"
 
@@ -23,13 +23,13 @@ CONFIGURATION["Target A"] = 58
 CONFIGURATION["Subtract IVGDR"] = True
 # Integral across all ex energy of the IVGDR lorientzian, doesn't matter if
 # subtraction is off
-CONFIGURATION["IVGDR CS Integral"] = 1200.0
+CONFIGURATION["IVGDR CS Integral"] = 294.0
 # Height of the IVGDR lorentzian in millibarns
-CONFIGURATION["IVGDR Height"] = 200.0
+CONFIGURATION["IVGDR Height"] = 23.6484
 # centroid energy (in MeV) of the IVGDR lorentzian
-CONFIGURATION["IVGDR Center"] = 12.0
+CONFIGURATION["IVGDR Center"] = 19.0984
 # width of the IVGDR lorentzian in MeV
-CONFIGURATION["IVGDR Width"] = 3.0
+CONFIGURATION["IVGDR Width"] = 7.91453
 
 # Limits on and paramters of the fit
 # Maximum L value to fit with
