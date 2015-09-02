@@ -86,14 +86,14 @@ def handle_ivgdr(data):
         # read the distributions
         dists = read_ivgdr_dists([elem[0] for elem in data])
         # extract the list of angles for each energy
-        angle_lists = [ en_set[1][:,0] for en_set in data]
+        angle_lists = [en_set[1][:, 0] for en_set in data]
         # calculate scaled and interpolated points
-        ivgdr_values = [ interpolate_and_scale_ivgdr(dist, ewsr, angle_list)
+        ivgdr_values = [interpolate_and_scale_ivgdr(dist, ewsr, angle_list)
                         for (dist, ewsr, angle_list) in zip(dists, ewsrs,
-                                                          angle_lists)]
+                                                            angle_lists)]
         sub_data = copy.deepcopy(data)
         for i in range(len(sub_data)):
-            sub_data[i][1][:,1] = sub_data[i][1][:,1] - ivgdr_values[i]                           
+            sub_data[i][1][:, 1] = sub_data[i][1][:, 1] - ivgdr_values[i]
         print "IVGDR subtraction is done"
         return dists, ewsrs, sub_data
     else:
@@ -105,9 +105,9 @@ def interpolate_and_scale_ivgdr(dist, ewsr, angle_list):
     """This function takes an ivgdr distribution, interpolates it, calculates
     the values of the distribution at the provided angles, multiplies them by
     ewsr and returns it"""
-    interp = interpolate.interp1d(dist[:,0],dist[:,1],kind="cubic")
+    interp = interpolate.interp1d(dist[:, 0], dist[:, 1], kind="cubic")
     values = interp(angle_list)
-    return (ewsr*values)
+    return ewsr*values
 
 
 def read_ivgdr_dists(en_list):
@@ -119,11 +119,10 @@ def read_ivgdr_dists(en_list):
     dists_list = []
     for name in dist_file_names:
         dist_file = open(name, 'r')
-        dist = [ [float(elem) for elem in line.strip().split(',')]
+        dist = [[float(elem) for elem in line.strip().split(',')]
                 for line in dist_file]
         dists_list.append(np.array(dist, dtype=np.float32))
     return dists_list
-            
 
 
 # This class allows the calculation of IVGDR fractions easily
@@ -194,6 +193,7 @@ def read_row_cs_data_file(file_name, max_angle, min_en, max_en):
                 #    print distData[i],",",distData[i+1],",",distData[i+2]
             # put the energy and its associated distribution in a list
             output.append([energy, np.array(distribution, dtype=np.float32)])
+    print "Exp Data is read in"
     return output
 
 
