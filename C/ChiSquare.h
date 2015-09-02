@@ -42,4 +42,7 @@ void setMdaDist(void* strPtr, int distIndex, float* dist);
 //calculate the chi^2
 float calculateChi(void* strPtr, float* params);
 
+//calculate the log liklihood
+float calculateLnLiklihood(void* strPtr, float* params);
+
 #endif  // MDA_MCMC_C_CHI_SQUARE_H
