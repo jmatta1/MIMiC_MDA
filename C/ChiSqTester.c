@@ -52,6 +52,18 @@ int main(int argc, char* argv[])
     printf("calc chi, took: %d nanoseconds\n", diff);
     printf("  the chi was: %f\n", chi);
     
+    //test the calculate log liklihood function
+    clock_gettime(CLOCK_MONOTONIC , &t3);
+    chi = calculateLnLiklihood(dataPtr, paramArray);
+    for( int i=0; i< 30; ++i)
+    {
+        calculateLnLiklihood(dataPtr, paramArray);
+    }
+    clock_gettime(CLOCK_MONOTONIC , &t4);
+    diff = (t4.tv_nsec-t3.tv_nsec);
+    printf("calc log liklihood, took: %d nanoseconds\n", diff);
+    printf("  the chi was: %f\n", chi);
+    
     //test the deallocate function
     t1 = clock();
     freeMdaStruct(dataPtr);
