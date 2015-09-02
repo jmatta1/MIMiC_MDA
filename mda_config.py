@@ -12,15 +12,21 @@ CONFIGURATION["Shared Lib Path"] = "./C/libChiSq.so"
 
 # Information about inputs to the program
 # path to the file containing the experimental data
-CONFIGURATION["Input File Path"] = "./58Ni_cefatz_en_row_decomp.csv"
+CONFIGURATION["Input File Path"] = "./58Ni_cefatz_en_row_decomp.csv"  # used
 # path to the directory that contains the dwba GR distributions for 100% EWSR
 CONFIGURATION["Distribution Directory"] = "./dist/"
 
 # Information about outputs from the program
-# path to the directory that will hold the distribution outputs
-CONFIGURATION["Fit Directory"] = "./fits/"
 # file to hold the fitted parameters
 CONFIGURATION["Parameter File"] = "./output.csv"
+# path to the directory that will hold the distribution outputs
+CONFIGURATION["Fits Csv Directory"] = "./fits/csv/"
+# directory to store triangle plots
+CONFIGURATION["Triangle Plots Directory"] = "./fits/triangles/"
+# directory to store fit plots
+CONFIGURATION["Fit Plots Directory"] = "./fits/fit_plots/"
+# directory to store parameter plots
+CONFIGURATION["Parameter Plots Directory"] = "./fits/param_plots/"
 
 
 # Information about the target nucleus
@@ -30,19 +36,27 @@ CONFIGURATION["Target A"] = 58
 CONFIGURATION["Subtract IVGDR"] = True
 # Integral across all ex energy of the IVGDR lorientzian, doesn't matter if
 # subtraction is off
-CONFIGURATION["IVGDR CS Integral"] = 294.0
+CONFIGURATION["IVGDR CS Integral"] = 294.0  # used
 # Height of the IVGDR lorentzian in millibarns
-CONFIGURATION["IVGDR Height"] = 23.6484
+CONFIGURATION["IVGDR Height"] = 23.6484  # used
 # centroid energy (in MeV) of the IVGDR lorentzian
-CONFIGURATION["IVGDR Center"] = 19.0984
+CONFIGURATION["IVGDR Center"] = 19.0984  # used
 # width of the IVGDR lorentzian in MeV
-CONFIGURATION["IVGDR Width"] = 7.91453
+CONFIGURATION["IVGDR Width"] = 7.91453  # used
+
+# Information setting what energies and angles are fit
+# Maximum Angle (in degrees) to fit with
+CONFIGURATION["Max Theta"] = 10.0  # used
+# Energy such that all fitted energies are >= to it
+CONFIGURATION["Start Energy"] = 11.4  # used
+# Energy such that all fitted energies are <= to it
+CONFIGURATION["Final Energy"] = 31.6  # used
 
 # Limits on and paramters of the fit
 # Maximum L value to fit with
 CONFIGURATION["Maximum L"] = 7
-# Maximum Angle (in degrees) to fit with
-CONFIGURATION["Max Theta"] = 10.0
+# List of sum rule fractions (on the interval [0, 1])
+CONFIGURATION["EWSR Fractions"] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 # Confidence interval of the error bars
 # ((CONFIGURATION["Sample Points"] - 50) * CONFIGURATION["Number of Walkers"])
 # must exceed, by a large margin, the following value:
