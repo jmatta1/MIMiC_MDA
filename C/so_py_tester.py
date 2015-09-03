@@ -52,12 +52,12 @@ def main():
     
     # run the function to calculate a chi^2
     t1 = time.time()
-    chi = cs_lib.calculateLnLiklihood(mdaData, params.ctypes.data)
+    lnlik = cs_lib.calculateLnLiklihood(mdaData, params.ctypes.data)
     for _ in range(30):
         cs_lib.calculateLnLiklihood(mdaData, params.ctypes.data)
     t2 = time.time()
     print "calc log liklihood, took", int((t2-t1)*1000000), "microseconds"
-    print "  the chi was:",chi
+    print "  the log liklihood was:",lnlik
     
     # free the structure
     t1 = time.time()
@@ -67,18 +67,18 @@ def main():
     
     # as a test, calculate the chi^2 in the pythonic way
     t1 = time.time()
-    residuals = divDat
-    for param in params:
+    residuals = (divDat - divDat*params[0])
+    for param in params[1:]:
         residuals -= param*divDat
-    lnlik = np.sum(np.power(residuals,2))/(-2.0)
+    lnlik = np.sum(np.power(residuals,2.0))/(-2.0)
     for _ in range(30):
-        residuals = divDat
-        for param in params:
+        residuals = (divDat - divDat*params[0])
+        for param in params[1:]:
             residuals -= param*divDat
-        temp = np.sum(np.power(residuals,2))/(-2.0)
+        temp = np.sum(np.power(residuals,2.0))/(-2.0)
     t2 = time.time()
     print "python calc log liklihood, took", int((t2-t1)*1000000), "microseconds"
-    print "  the chi was:",lnlik
+    print "  the log liklihood was:",lnlik
 
 
 if __name__ == "__main__":
