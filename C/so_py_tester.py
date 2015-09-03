@@ -14,6 +14,7 @@ def main():
     cs_lib.makeMdaStruct.restype = c_void_p
     cs_lib.calculateChi.restype = c_float
     cs_lib.calculateLnLiklihood.restype = c_float
+    cs_lib.calculateLnLiklihoodResids.restype = c_float
     
     # make the strcuture to hold the MdaData with 50 data points and 8 L dists
     t1 = time.time()
@@ -50,13 +51,23 @@ def main():
     print "calc chi, took", int((t2-t1)*1000000), "microseconds"
     print "  the chi was:",chi
     
-    # run the function to calculate a chi^2
+    # run the function to calculate a lnliklihood
     t1 = time.time()
     lnlik = cs_lib.calculateLnLiklihood(mdaData, params.ctypes.data)
     for _ in range(30):
         cs_lib.calculateLnLiklihood(mdaData, params.ctypes.data)
     t2 = time.time()
     print "calc log liklihood, took", int((t2-t1)*1000000), "microseconds"
+    print "  the log liklihood was:",lnlik
+    
+    # run the function to calculate a lnliklihood with external resids
+    t1 = time.time()
+    resids = np.arange(10.0, dtype=np.float32)
+    lnlik = cs_lib.calculateLnLiklihoodResids(mdaData, params.ctypes.data, resids.ctypes.data)
+    for _ in range(30):
+        cs_lib.calculateLnLiklihoodResids(mdaData, params.ctypes.data, resids.ctypes.data)
+    t2 = time.time()
+    print "calc log liklihood extern resids, took", int((t2-t1)*1000000), "microseconds"
     print "  the log liklihood was:",lnlik
     
     # free the structure

@@ -1,5 +1,5 @@
 #include"ChiSquare.h"
-#include<stdio.h>
+#include<malloc.h>
 #include<time.h>
 
 int main(int argc, char* argv[])
@@ -62,6 +62,19 @@ int main(int argc, char* argv[])
     clock_gettime(CLOCK_MONOTONIC , &t4);
     diff = (t4.tv_nsec-t3.tv_nsec);
     printf("calc log liklihood, took: %d nanoseconds\n", diff);
+    printf("  the chi was: %f\n", chi);
+    
+    //test the calc log liklihood with resids function
+    clock_gettime(CLOCK_MONOTONIC , &t3);
+    float* residArray = (float*) memalign(64,sizeof(float)*10);
+    chi = calculateLnLiklihoodResids(dataPtr, paramArray, residArray);
+    for( int i=0; i< 30; ++i)
+    {
+        calculateLnLiklihoodResids(dataPtr, paramArray, residArray);
+    }
+    clock_gettime(CLOCK_MONOTONIC , &t4);
+    diff = (t4.tv_nsec-t3.tv_nsec);
+    printf("calc log liklihood external resids, took: %d nanoseconds\n", diff);
     printf("  the chi was: %f\n", chi);
     
     //test the deallocate function
