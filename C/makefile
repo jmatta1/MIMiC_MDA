@@ -1,6 +1,6 @@
 
 FLAGS=-O2 -fstrict-aliasing -Wall -msse -msse2 -msse3 -msse4 -mavx
-LIB_FLAGS=-shared -fPIC #-Bsymbolic-functions -Wl,-z,now
+LIB_FLAGS= -ftree-vectorize -shared -fPIC #-Bsymbolic-functions -Wl,-z,now
 EXEC_FLAGS=-L./ -Wl,-rpath=./ #,-z,now
 
 
