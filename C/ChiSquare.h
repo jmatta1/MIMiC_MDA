@@ -45,4 +45,7 @@ float calculateChi(void* strPtr, float* params);
 //calculate the log liklihood
 float calculateLnLiklihood(void* strPtr, float* params);
 
+//calculate the log liklihood with provided residArray
+float calculateLnLiklihoodResids(void* strPtr, float* params, float* residArray);
+
 #endif  // MDA_MCMC_C_CHI_SQUARE_H

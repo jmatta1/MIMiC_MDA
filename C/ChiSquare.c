@@ -186,3 +186,42 @@ float calculateLnLiklihood(void* strPtr, float* params)
     
     return (chi/(-2.0));
 }
+
+//calculate the log liklihood
+float calculateLnLiklihoodResids(void* strPtr, float* params, float* residArray)
+{
+    MdaData* data = (MdaData*)strPtr;
+    int numPts = data->numPts;
+    int numL = data->numLs;
+    float* exp = data->data;
+    float* dists = data->dists;
+    float pVal = params[0];
+    float* dist = dists;
+    
+    //subtract the first distribution to load the residuals
+    for (int j=0; j<numPts; ++j)
+    {
+        residArray[j] = (exp[j]-(pVal*dist[j]));
+    }
+
+    //iterate across the distributions
+    for(int i=1; i<numL; ++i)
+    {
+        float pVal = params[i];
+        float* dist = &(dists[i*numPts]);
+        for (int j=0; j<numPts; ++j)
+        {
+            residArray[j] -= (pVal*dist[j]);
+        }
+    }
+    
+    float chi = 0.0f;
+    
+    //now accumulate the residuals squared and return them
+    for(int i=0; i<numPts; ++i)
+    {
+        chi += (residArray[i]*residArray[i]);
+    }
+    
+    return (chi/(-2.0));
+}
