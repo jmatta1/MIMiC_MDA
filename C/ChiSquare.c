@@ -9,28 +9,34 @@
     defined(ASSIGN_DIST_OUTPUT)
 #include<stdio.h>
 #endif
-#include<stdlib.h>
+//removing stdlib since instead of malloc we are now using memalign
+//#include<stdlib.h>
+#include<malloc.h>
 
+#define ALIGN_BOUND 64
 
 __attribute__((malloc)) void* makeMdaStruct(int numPts, int numL)
 {
     MdaData* temp = (MdaData*) malloc(sizeof(MdaData));
     temp->numPts = numPts;
     temp->numLs = numL;
-    temp->data = (float*) malloc(sizeof(float)*numPts);
-    temp->dists = (float*) malloc(sizeof(float)*numPts*numL);
-    temp->resids = (float*) malloc(sizeof(float)*numPts);
+    //temp->data = (float*) malloc(sizeof(float)*numPts);
+    //temp->dists = (float*) malloc(sizeof(float)*numPts*numL);
+    //temp->resids = (float*) malloc(sizeof(float)*numPts);
+    temp->data = (float*) memalign(ALIGN_BOUND,sizeof(float)*numPts);
+    temp->dists = (float*) memalign(ALIGN_BOUND,sizeof(float)*numPts*numL);
+    temp->resids = (float*) memalign(ALIGN_BOUND,sizeof(float)*numPts);
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("MdaDataStruct is: %d bytes\n", sizeof(MdaData));
+    printf("\n\nMdaDataStruct is: %d bytes\n", sizeof(MdaData));
     printf("MdaDataStruct is at: %p\n", temp);
     printf("Number of points is: %d\n", numPts);
     printf("Number of L values is: %d\n", numL);
-    printf("Data size is: %d byes\n", sizeof(float)*numPts);
+    printf("Data size is: %d bytes\n", sizeof(float)*numPts);
     printf("Data is at: %p\n", temp->data);
-    printf("Distribution size is: %d byes\n", sizeof(float)*numPts*numL);
+    printf("Distribution size is: %d bytes\n", sizeof(float)*numPts*numL);
     printf("Distributions are at: %p\n", temp->dists);
-    printf("Residual size is: %d byes\n", sizeof(float)*numPts);
-    printf("Residuals are at: %p\n", temp->dists);
+    printf("Residual size is: %d bytes\n", sizeof(float)*numPts);
+    printf("Residuals are at: %p\n", temp->resids);
 #endif
     return ((void*)temp);
 }
@@ -39,15 +45,19 @@ void freeMdaStruct(void* strPtr)
 {
     MdaData* temp = (MdaData*)strPtr;
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Freeing the distributions\n");
+    printf("\n\nFreeing the residuals at %p\n", temp->resids);
 #endif
-    free(temp->dists);
+    free((temp->resids));
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Freeing the data\n");
+    printf("Freeing the distributions at %p\n", temp->dists);
 #endif
-    free(temp->data);
+    free((temp->dists));
 #ifdef MAKE_AND_FREE_OUTPUT
-    printf("Freeing the structure\n");
+    printf("Freeing the data at %p\n", temp->data);
+#endif
+    free((temp->data));
+#ifdef MAKE_AND_FREE_OUTPUT
+    printf("Freeing the structure at %p\n", temp);
 #endif
     free(temp);
 }
@@ -82,15 +92,15 @@ void setMdaDist(void* strPtr, int distIndex, float* dist)
     
     int offset = distIndex*data->numPts;
 #ifdef ASSIGN_DIST_OUTPUT
-    printf("Offset is: %d", offset);
+    printf("Offset is: %d\n", offset);
 #endif
     
-    //float* temp = &*dists[offset]);
+    float* temp = &(data->dists[offset]);
     
     for (int i=0; i<data->numPts; ++i)
     {
-        data->dists[offset+i] = dist[i];
-        //temp[i] = dist[i];
+        //data->dists[offset+i] = dist[i];
+        temp[i] = dist[i];
 #ifdef ASSIGN_DIST_OUTPUT
         printf("At cell %d value: %f  | Orig: %f\n", i, data->dists[i], dist[i]);
 #endif
@@ -149,7 +159,7 @@ float calculateLnLiklihood(void* strPtr, float* params)
     float pVal = params[0];
     float* dist = dists;
     
-    //first use only the first distribution to load the residuals
+    //subtract the first distribution to load the residuals
     for (int j=0; j<numPts; ++j)
     {
         res[j] = (exp[j]-(pVal*dist[j]));
