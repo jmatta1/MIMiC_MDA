@@ -15,13 +15,14 @@ if len(sys.argv) != 2:
     print "\nUsage:\n\t./mda.py configuration_file\n\t  or"
     print "\tpython mda.py configuration_file\n"
     sys.exit()
-#strip off the .py if it exists
-cf_file_name = None
+# strip off the .py if it exists
+CF_FILE_NAME = None
 if sys.argv[1][-3:] == ".py":
-    cf_file_name = sys.argv[1][0:-3]
+    CF_FILE_NAME = sys.argv[1][0:-3]
 else:
-    cf_file_name = sys.argv[1]
-CONFIG = __import__(cf_file_name).CONFIG
+    CF_FILE_NAME = sys.argv[1]
+CONFIG = __import__(CF_FILE_NAME).CONFIG
+
 
 def main():
     """gets the configuration file to import, imports it and then performs
@@ -72,7 +73,7 @@ def initialize_mda():
                                      CONFIG["Max Theta"],
                                      CONFIG["Start Energy"],
                                      CONFIG["Final Energy"])
-    #now read and subtract the IVGDR data
+    # now read and subtract the IVGDR data
     ivgdr_dists, ivgdr_ewsr, sub_data = handle_ivgdr(exp_data)
     # print ivgdr_dists[0], '\n', ivgdr_ewsr[0], '\n', sub_data[0]
     # now read the distributions that are used to fit the data
@@ -86,7 +87,8 @@ def initialize_mda():
     fit_data = [(exp_en[1][:, 1]/exp_en[1][:, 2]) for exp_en in exp_data]
     print "Experimental data prepared for fitting"
     # now interleave things so we are ready to use pool.map across everything
-    interleaved = [(fit_data[i],interp_dists[i]) for i in range(len(fit_data))]
+    interleaved = [(fit_data[i], interp_dists[i])
+                   for i in range(len(fit_data))]
     print interleaved
 """    # now load the shared library
     cs_lib = ct.cdll.LoadLibrary(CONFIG["Shared Lib Path"])
@@ -104,7 +106,7 @@ def initialize_mda():
 
 def make_and_load_structs(data, dists, cs_lib):
     """This function makes the list of fit structures and loads each one"""
-    #make the set of structures
+    # make the set of structures
     structs = [cs_lib.makeMdaStruct(len(data[i]), CONFIG["Maximum L"] + 1)
                for i in range(len(data))]
     for i in range(len(data)):
@@ -136,7 +138,7 @@ def interp_all_dists(dists, data):
             # interpolate and divide the distribution
             interp_data = interpolate_dist(dists[i][j], angle_list, error_list)
             en_output.append(interp_data)
-        #append the information for the distributions of this energy to output
+        # append the information for the distributions of this energy to output
         output.append(en_output)
     return output
 
@@ -160,7 +162,7 @@ def read_dist(energy, l_value):
         int(100.0*CONFIG["EWSR Fractions"][l_value]))
     dist_file = open(dist_file_name, 'r')
     output = []
-    #iterate through the file
+    # iterate through the file
     for line in dist_file:
         vals = [float(x.strip()) for x in line.strip().split(',')]
         output.append((vals[0], vals[1]))
