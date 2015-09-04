@@ -1,46 +1,52 @@
 #!/usr/bin/python
 """This program performs a multipole decomposition analysis of the data and
-options given in the configuration file mda_config.py and using the Markov
+options given in the configuration file and using the Markov
 Chain Monte Carlo method to sample and get error bars and best fits"""
 import sys
 import multiprocessing
 import math
 import numpy as np
 import copy
+import ctypes as ct
 from scipy import interpolate
 
-# prevent bytecode generation for the config file
-ORIGINAL_SYS_DONT_WRITE_BYTECODE = sys.dont_write_bytecode
-sys.dont_write_bytecode = True
-# import the configuration and template variables
-from mda_config import CONFIGURATION as config
-# restore the dont_write_bytecode variable to its original value
-sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
-
+# firsts we check the command line and grab the module name
+if len(sys.argv) != 2:
+    print "\nUsage:\n\t./mda.py configuration_file\n\t  or"
+    print "\tpython mda.py configuration_file\n"
+    sys.exit()
+#strip off the .py if it exists
+cf_file_name = None
+if sys.argv[1][-3:] == ".py":
+    cf_file_name = sys.argv[1][0:-3]
+else:
+    cf_file_name = sys.argv[1]
+CONFIG = __import__(cf_file_name).CONFIG
 
 def main():
-    """performs sanity checks on the configuration data and then calls the
-    functions that do the work"""
-    # check that config parameters have sane values
-    # first check that they are not requesting greater concurrency than the
+    """gets the configuration file to import, imports it and then performs
+    sanity checks on the configuration data and then calls the functions that
+    do the work"""
+    # check that the user gave sane information
+    # check that they are not requesting greater concurrency than the
     # system supports
     cpu_count = multiprocessing.cpu_count()
-    if config["Number of Threads"] > cpu_count:
+    if CONFIG["Number of Threads"] > cpu_count:
         print "\nInvalid number of threads, on this machine it must be: "
-        print 'config["Number of Threads"] <= %d\n' % cpu_count
+        print 'CONFIG["Number of Threads"] <= %d\n' % cpu_count
         sys.exit()
-    num_samples = ((config["Sample Points"] - 50)
-                   * config["Number of Walkers"])
+    num_samples = ((CONFIG["Sample Points"] - 50)
+                   * CONFIG["Number of Walkers"])
     samples_needed = int(math.ceil(10.0 /
-                                   ((1.0 - config["Confidence Interval"]) /
+                                   ((1.0 - CONFIG["Confidence Interval"]) /
                                     2.0)))
     if samples_needed > num_samples:
-        print SAMPLES_ERROR % (num_samples, config["Sample Points"],
-                               config["Number of Walkers"], samples_needed,
-                               config["Confidence Interval"])
+        print SAMPLES_ERROR % (num_samples, CONFIG["Sample Points"],
+                               CONFIG["Number of Walkers"], samples_needed,
+                               CONFIG["Confidence Interval"])
         sys.exit()
-    num_dists = (1 + config["Maximum L"])
-    num_ewsr = len(config["EWSR Fractions"])
+    num_dists = (1 + CONFIG["Maximum L"])
+    num_ewsr = len(CONFIG["EWSR Fractions"])
     if num_ewsr > num_dists:
         print "\nToo many EWSR fractions listed, there must be",\
             "(1 + CONFIGURATION[\"Maximum L\"]) = %d\n" % num_dists,\
@@ -62,12 +68,103 @@ def initialize_mda():
     subtracts all the ivgdr components if needed then calls the functions
     that do the initial fitting and then the sampling"""
     # read the raw data
-    exp_data = read_row_cs_data_file(config["Input File Path"],
-                                     config["Max Theta"],
-                                     config["Start Energy"],
-                                     config["Final Energy"])
+    exp_data = read_row_cs_data_file(CONFIG["Input File Path"],
+                                     CONFIG["Max Theta"],
+                                     CONFIG["Start Energy"],
+                                     CONFIG["Final Energy"])
+    #now read and subtract the IVGDR data
     ivgdr_dists, ivgdr_ewsr, sub_data = handle_ivgdr(exp_data)
-    print ivgdr_dists[0], '\n', ivgdr_ewsr[0], '\n', sub_data[0]
+    # print ivgdr_dists[0], '\n', ivgdr_ewsr[0], '\n', sub_data[0]
+    # now read the distributions that are used to fit the data
+    dists = [[read_dist(elem[0], i) for i in range(CONFIG["Maximum L"] + 1)]
+             for elem in exp_data]
+    print "Distributions read in"
+    # now interpolate the distributions to get the values at the angles in data
+    interp_dists = interp_all_dists(dists, exp_data)
+    print "Distributions interpolated and prepared for fitting"
+    # now get the data divided by errors without angle values
+    fit_data = [(exp_en[1][:, 1]/exp_en[1][:, 2]) for exp_en in exp_data]
+    print "Experimental data prepared for fitting"
+    # now interleave things so we are ready to use pool.map across everything
+    interleaved = [(fit_data[i],interp_dists[i]) for i in range(len(fit_data))]
+    print interleaved
+"""    # now load the shared library
+    cs_lib = ct.cdll.LoadLibrary(CONFIG["Shared Lib Path"])
+    cs_lib.makeMdaStruct.restype = ct.c_void_p
+    cs_lib.calculateChi.restype = ct.c_float
+    cs_lib.calculateLnLiklihood.restype = ct.c_float
+    print "Shared library loaded"
+    # now construct the list of fit structures
+    fit_structs = make_and_load_structs(fit_data, interp_dists, cs_lib)
+    print "Fit objects prepared and data loaded into them"
+    # at the end we free all the structs so that we are 'Nice People'
+    for struct in fit_structs:
+        cs_lib.freeMdaStruct(struct)"""
+
+
+def make_and_load_structs(data, dists, cs_lib):
+    """This function makes the list of fit structures and loads each one"""
+    #make the set of structures
+    structs = [cs_lib.makeMdaStruct(len(data[i]), CONFIG["Maximum L"] + 1)
+               for i in range(len(data))]
+    for i in range(len(data)):
+        # first add the data
+        cs_lib.setMdaData(structs[i], data[i].ctypes.data)
+        # now set the distributions
+        for j in range(len(dists[i])):
+            cs_lib.setMdaDist(structs[i], j, dists[i][j].ctypes.data)
+    return structs
+
+
+def interp_all_dists(dists, data):
+    """this function takes the grand list of distributions and the experimental
+    data and calls another function to interpolate the distributions with the
+    exp angles and divide the interpolated distributions by the appropriate
+    error for each point"""
+    # first make the output variable
+    output = []
+    # now iterate across the energies
+    for i in range(len(dists)):
+        # extract the list of angles for this energy
+        angle_list = data[i][1][:, 0]
+        # extract the list of errorss for this energy
+        error_list = data[i][1][:, 2]
+        # make the variable to hold the list of interpolated values
+        en_output = []
+        # iterate across the L values
+        for j in range(len(dists[i])):
+            # interpolate and divide the distribution
+            interp_data = interpolate_dist(dists[i][j], angle_list, error_list)
+            en_output.append(interp_data)
+        #append the information for the distributions of this energy to output
+        output.append(en_output)
+    return output
+
+
+def interpolate_dist(dist, angles, errors):
+    """this function takes a distribution, a list of exp angles, and a list of
+    exp error at each angle, it then interpolates the distribution at that
+    angle and divides that value by the exp error at that angle"""
+    # construct the interpolation
+    interp = interpolate.interp1d(dist[:, 0], dist[:, 1], kind="cubic")
+    # get the interpolated values divided by the errors and return them
+    return interp(angles)/errors
+
+
+def read_dist(energy, l_value):
+    """This function reads the distribution described by the passed parameters
+    from disk into an np array"""
+    # first construct the file name
+    dist_file_name = "{0:s}A{1:d}_Ex{2:4.2f}_L{3:02d}_T0_F{4:03d}.csv".format(
+        CONFIG["Distribution Directory"], CONFIG["Target A"], energy, l_value,
+        int(100.0*CONFIG["EWSR Fractions"][l_value]))
+    dist_file = open(dist_file_name, 'r')
+    output = []
+    #iterate through the file
+    for line in dist_file:
+        vals = [float(x.strip()) for x in line.strip().split(',')]
+        output.append((vals[0], vals[1]))
+    return np.array(output)
 
 
 def handle_ivgdr(data):
@@ -77,10 +174,10 @@ def handle_ivgdr(data):
     ewsr fractions and the experimental data minus the interpolated IVGDR data
     times the ewsr fraction"""
     # if needed handle the ivgdr
-    if config["Subtract IVGDR"]:
-        frac = IVGDRFraction(config["IVGDR Height"], config["IVGDR Center"],
-                             config["IVGDR Width"],
-                             config["IVGDR CS Integral"])
+    if CONFIG["Subtract IVGDR"]:
+        frac = IVGDRFraction(CONFIG["IVGDR Height"], CONFIG["IVGDR Center"],
+                             CONFIG["IVGDR Width"],
+                             CONFIG["IVGDR CS Integral"])
         # calculate the list of IVGDR fractions
         ewsrs = [frac.get_ivgdr_fraction(elem[0]) for elem in data]
         # read the distributions
@@ -114,7 +211,7 @@ def read_ivgdr_dists(en_list):
     """reads in the csv files with the IVGDR distributions"""
     dist_file_names = \
         ["{0:s}A{1:d}_Ex{2:4.2f}_L01_T1_F100.csv".format(
-            config["Distribution Directory"], config["Target A"], energy)
+            CONFIG["Distribution Directory"], CONFIG["Target A"], energy)
          for energy in en_list]
     dists_list = []
     for name in dist_file_names:
