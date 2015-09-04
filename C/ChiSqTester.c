@@ -76,6 +76,7 @@ int main(int argc, char* argv[])
     diff = (t4.tv_nsec-t3.tv_nsec);
     printf("calc log liklihood external resids, took: %d nanoseconds\n", diff);
     printf("  the chi was: %f\n", chi);
+    free(residArray);
     
     //test the deallocate function
     t1 = clock();
