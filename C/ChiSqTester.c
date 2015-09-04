@@ -65,8 +65,8 @@ int main(int argc, char* argv[])
     printf("  the chi was: %f\n", chi);
     
     //test the calc log liklihood with resids function
-    clock_gettime(CLOCK_MONOTONIC , &t3);
     float* residArray = (float*) memalign(64,sizeof(float)*10);
+    clock_gettime(CLOCK_MONOTONIC , &t3);
     chi = calculateLnLiklihoodResids(dataPtr, paramArray, residArray);
     for( int i=0; i< 30; ++i)
     {

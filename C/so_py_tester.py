@@ -61,8 +61,8 @@ def main():
     print "  the log liklihood was:",lnlik
     
     # run the function to calculate a lnliklihood with external resids
-    t1 = time.time()
     resids = np.arange(10.0, dtype=np.float32)
+    t1 = time.time()
     lnlik = cs_lib.calculateLnLiklihoodResids(mdaData, params.ctypes.data, resids.ctypes.data)
     for _ in range(30):
         cs_lib.calculateLnLiklihoodResids(mdaData, params.ctypes.data, resids.ctypes.data)
