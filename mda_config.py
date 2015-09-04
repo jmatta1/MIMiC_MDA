@@ -4,71 +4,82 @@ and is intended to be user editable"""
 
 # This is the dictionary that stores configuration information
 # Below are all the user modifiable configuration options
-CONFIGURATION = {}
+CONFIG = {}
 
 # path to the shared library that contains the compiled routines for fast calc
 # of chi^2, log likelihood, and prior distributions
-CONFIGURATION["Shared Lib Path"] = "./C/libChiSq.so"
+CONFIG["Shared Lib Path"] = "./C/libChiSq.so"
 
 # Information about inputs to the program
 # path to the file containing the experimental data
-CONFIGURATION["Input File Path"] = "./58Ni_cefatz_en_row_decomp.csv"  # used
+CONFIG["Input File Path"] = "./58Ni_cefatz_en_row_decomp.csv"  # used
 # path to the directory that contains the dwba GR distributions for 100% EWSR
-CONFIGURATION["Distribution Directory"] = "./dist/"
+CONFIG["Distribution Directory"] = "./dist/"
 
 # Information about outputs from the program
 # file to hold the fitted parameters
-CONFIGURATION["Parameter File"] = "./output.csv"
+CONFIG["Parameter File"] = "./output.csv"
 # path to the directory that will hold the distribution outputs
-CONFIGURATION["Fits Csv Directory"] = "./fits/csv/"
+CONFIG["Fits Csv Directory"] = "./fits/csv/"
 # directory to store triangle plots
-CONFIGURATION["Triangle Plots Directory"] = "./fits/triangles/"
+CONFIG["Triangle Plots Directory"] = "./fits/triangles/"
 # directory to store fit plots
-CONFIGURATION["Fit Plots Directory"] = "./fits/fit_plots/"
+CONFIG["Fit Plots Directory"] = "./fits/fit_plots/"
 # directory to store parameter plots
-CONFIGURATION["Parameter Plots Directory"] = "./fits/param_plots/"
+CONFIG["Parameter Plots Directory"] = "./fits/param_plots/"
 
 
 # Information about the target nucleus
 # A of the target nucleus
-CONFIGURATION["Target A"] = 58
+CONFIG["Target A"] = 58
 # Sets if IVGDR subtraction is carried carried out.
-CONFIGURATION["Subtract IVGDR"] = True
+CONFIG["Subtract IVGDR"] = True
 # Integral across all ex energy of the IVGDR lorientzian, doesn't matter if
 # subtraction is off
-CONFIGURATION["IVGDR CS Integral"] = 294.0  # used
+CONFIG["IVGDR CS Integral"] = 294.0  # used
 # Height of the IVGDR lorentzian in millibarns
-CONFIGURATION["IVGDR Height"] = 23.6484  # used
+CONFIG["IVGDR Height"] = 23.6484  # used
 # centroid energy (in MeV) of the IVGDR lorentzian
-CONFIGURATION["IVGDR Center"] = 19.0984  # used
+CONFIG["IVGDR Center"] = 19.0984  # used
 # width of the IVGDR lorentzian in MeV
-CONFIGURATION["IVGDR Width"] = 7.91453  # used
+CONFIG["IVGDR Width"] = 7.91453  # used
 
 # Information setting what energies and angles are fit
 # Maximum Angle (in degrees) to fit with
-CONFIGURATION["Max Theta"] = 10.0  # used
+CONFIG["Max Theta"] = 10.0  # used
 # Energy such that all fitted energies are >= to it
-CONFIGURATION["Start Energy"] = 11.4  # used
+CONFIG["Start Energy"] = 11.4  # used
 # Energy such that all fitted energies are <= to it
-CONFIGURATION["Final Energy"] = 31.6  # used
+CONFIG["Final Energy"] = 11.6  # used
 
 # Limits on and paramters of the fit
 # Maximum L value to fit with
-CONFIGURATION["Maximum L"] = 7
+CONFIG["Maximum L"] = 7
 # List of sum rule fractions (on the interval [0, 1])
-CONFIGURATION["EWSR Fractions"] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+CONFIG["EWSR Fractions"] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+# Lists of starting points for each a_L in the initial fits
+# (max a_L = 1.0/(EWSR Fraction) 
+CONFIG["Start Fracs a0"] = [0.1, 0.5, 0.9]
+CONFIG["Start Fracs a1"] = [0.1, 0.5, 0.9]
+CONFIG["Start Fracs a2"] = [0.1, 0.5, 0.9]
+CONFIG["Start Fracs a3"] = [0.1, 0.5, 0.9]
+CONFIG["Start Fracs a4"] = [0.2, 0.8]
+CONFIG["Start Fracs a5"] = [0.2, 0.8]
+CONFIG["Start Fracs a6"] = [0.5]
+CONFIG["Start Fracs a7"] = [0.5]
+
 # Confidence interval of the error bars
-# ((CONFIGURATION["Sample Points"] - 50) * CONFIGURATION["Number of Walkers"])
+# ((CONFIG["Sample Points"] - 50) * CONFIG["Number of Walkers"])
 # must exceed, by a large margin, the following value:
-# 1 / ((1 - CONFIGURATION["Confidence Interval"]) / 2)
+# 1 / ((1 - CONFIG["Confidence Interval"]) / 2)
 # 1 sigma -> 0.682689492
 # 2 sigma -> 0.954499736
 # 3 sigma -> 0.997300204
 # 4 sigma -> 0.99993666
-CONFIGURATION["Confidence Interval"] = 0.682689492
+CONFIG["Confidence Interval"] = 0.682689492
 # holds the number of points to sample for each walker
-CONFIGURATION["Sample Points"] = 500
+CONFIG["Sample Points"] = 500
 # holds the number of walks to run
-CONFIGURATION["Number of Walkers"] = 1000
+CONFIG["Number of Walkers"] = 1000
 # holds the number of concurrent threads
-CONFIGURATION["Number of Threads"] = 4
+CONFIG["Number of Threads"] = 4
