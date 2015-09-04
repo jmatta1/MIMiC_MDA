@@ -24,48 +24,51 @@ def main():
     
     # make an array with the test data
     divDat = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], np.float32)
+    ddPtr = divDat.ctypes.data
     
     # run the function to load the array into the struct
     t1 = time.time()
-    cs_lib.setMdaData(mdaData, divDat.ctypes.data)
+    cs_lib.setMdaData(mdaData, ddPtr)
     t2 = time.time()
     print "set data, took", int((t2-t1)*1000000), "microseconds"
     
     # run the function to load the array into the struct
     t1 = time.time()
-    cs_lib.setMdaDist(mdaData, 0, divDat.ctypes.data)
-    cs_lib.setMdaDist(mdaData, 1, divDat.ctypes.data)
-    cs_lib.setMdaDist(mdaData, 2, divDat.ctypes.data)
+    cs_lib.setMdaDist(mdaData, 0, ddPtr)
+    cs_lib.setMdaDist(mdaData, 1, ddPtr)
+    cs_lib.setMdaDist(mdaData, 2, ddPtr)
     t2 = time.time()
     print "set dist x3, took", int((t2-t1)*1000000), "microseconds"
     
     # make an array with the test data
     params = np.array([0.2, 0.2, 0.2], np.float32)
+    parPtr = params.ctypes.data
     
     # run the function to calculate a chi^2
     t1 = time.time()
-    chi = cs_lib.calculateChi(mdaData, params.ctypes.data)
+    chi = cs_lib.calculateChi(mdaData, parPtr)
     for _ in range(30):
-        cs_lib.calculateChi(mdaData, params.ctypes.data)
+        cs_lib.calculateChi(mdaData, parPtr)
     t2 = time.time()
     print "calc chi, took", int((t2-t1)*1000000), "microseconds"
     print "  the chi was:",chi
     
     # run the function to calculate a lnliklihood
     t1 = time.time()
-    lnlik = cs_lib.calculateLnLiklihood(mdaData, params.ctypes.data)
+    lnlik = cs_lib.calculateLnLiklihood(mdaData, parPtr)
     for _ in range(30):
-        cs_lib.calculateLnLiklihood(mdaData, params.ctypes.data)
+        cs_lib.calculateLnLiklihood(mdaData, parPtr)
     t2 = time.time()
     print "calc log liklihood, took", int((t2-t1)*1000000), "microseconds"
     print "  the log liklihood was:",lnlik
     
     # run the function to calculate a lnliklihood with external resids
     resids = np.arange(10.0, dtype=np.float32)
+    resPtr = resids.ctypes.data
     t1 = time.time()
-    lnlik = cs_lib.calculateLnLiklihoodResids(mdaData, params.ctypes.data, resids.ctypes.data)
+    lnlik = cs_lib.calculateLnLiklihoodResids(mdaData, parPtr, resPtr)
     for _ in range(30):
-        cs_lib.calculateLnLiklihoodResids(mdaData, params.ctypes.data, resids.ctypes.data)
+        cs_lib.calculateLnLiklihoodResids(mdaData, parPtr, resPtr)
     t2 = time.time()
     print "calc log liklihood extern resids, took", int((t2-t1)*1000000), "microseconds"
     print "  the log liklihood was:",lnlik
