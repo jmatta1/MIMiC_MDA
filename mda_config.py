@@ -50,7 +50,7 @@ CONFIG["Max Theta"] = 10.0  # used
 # Energy such that all fitted energies are >= to it
 CONFIG["Start Energy"] = 11.4  # used
 # Energy such that all fitted energies are <= to it
-CONFIG["Final Energy"] = 11.6  # used
+CONFIG["Final Energy"] = 14.6  # used
 
 # Limits on and paramters of the fit
 # Maximum L value to fit with
@@ -58,7 +58,7 @@ CONFIG["Maximum L"] = 7
 # List of sum rule fractions (on the interval [0, 1])
 CONFIG["EWSR Fractions"] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 # Lists of starting points for each a_L in the initial fits
-# (max a_L = 1.0/(EWSR Fraction) 
+# (max a_L = 1.0/(EWSR Fraction_L)
 CONFIG["Start Fracs a0"] = [0.1, 0.5, 0.9]
 CONFIG["Start Fracs a1"] = [0.1, 0.5, 0.9]
 CONFIG["Start Fracs a2"] = [0.1, 0.5, 0.9]
