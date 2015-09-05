@@ -59,14 +59,16 @@ CONFIG["Maximum L"] = 7
 CONFIG["EWSR Fractions"] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 # Lists of starting points for each a_L in the initial fits
 # (max a_L = 1.0/(EWSR Fraction_L)
-CONFIG["Start Fracs a0"] = [0.1, 0.5, 0.9]
-CONFIG["Start Fracs a1"] = [0.1, 0.5, 0.9]
-CONFIG["Start Fracs a2"] = [0.1, 0.5, 0.9]
-CONFIG["Start Fracs a3"] = [0.1, 0.5, 0.9]
-CONFIG["Start Fracs a4"] = [0.2, 0.8]
-CONFIG["Start Fracs a5"] = [0.2, 0.8]
-CONFIG["Start Fracs a6"] = [0.5]
-CONFIG["Start Fracs a7"] = [0.5]
+# ... This continues for as many Ls as you have
+# for example: CONFIG["Start Pts a23"] = [0.5]
+CONFIG["Start Pts a0"] = [0.1, 0.5, 0.9]
+CONFIG["Start Pts a1"] = [0.1, 0.5, 0.9]
+CONFIG["Start Pts a2"] = [0.1, 0.5, 0.9]
+CONFIG["Start Pts a3"] = [0.1, 0.5, 0.9]
+CONFIG["Start Pts a4"] = [0.2, 0.8]
+CONFIG["Start Pts a5"] = [0.2, 0.8]
+CONFIG["Start Pts a6"] = [0.5]
+CONFIG["Start Pts a7"] = [0.5]
 
 # Confidence interval of the error bars
 # ((CONFIG["Sample Points"] - 50) * CONFIG["Number of Walkers"])
