@@ -1,7 +1,11 @@
 #!/usr/bin/python
 """This program performs a multipole decomposition analysis of the data and
-options given in the configuration file and using the Markov
-Chain Monte Carlo method to sample and get error bars and best fits"""
+options given in the configuration file. First it finds starting points using
+the BFGS algorithm from a variety of starting positions given in the config
+file. Then it takes those starting points, refines them and finds parameter
+errors using the Markov Chain Monte Carlo technique, specifically the python
+implementation of Goodman & Weare's Affine Invariant MCMC ensemble sampler
+which is in the emcee package"""
 import sys
 import multiprocessing
 import math
@@ -86,36 +90,71 @@ def initialize_mda():
     # now get the data divided by errors without angle values
     fit_data = [(exp_en[1][:, 1]/exp_en[1][:, 2]) for exp_en in exp_data]
     print "Experimental data prepared for fitting"
+    # calculate the starting parameter sets for initial searches
+    start_params = calc_start_params()
+    print "Finished calculating parameter starting point list"""
     # now interleave things so we are ready to use pool.map across everything
-    interleaved = [(fit_data[i], interp_dists[i])
-                   for i in range(len(fit_data))]
-    print interleaved
-"""    # now load the shared library
-    cs_lib = ct.cdll.LoadLibrary(CONFIG["Shared Lib Path"])
-    cs_lib.makeMdaStruct.restype = ct.c_void_p
-    cs_lib.calculateChi.restype = ct.c_float
-    cs_lib.calculateLnLiklihood.restype = ct.c_float
-    print "Shared library loaded"
-    # now construct the list of fit structures
-    fit_structs = make_and_load_structs(fit_data, interp_dists, cs_lib)
-    print "Fit objects prepared and data loaded into them"
-    # at the end we free all the structs so that we are 'Nice People'
-    for struct in fit_structs:
-        cs_lib.freeMdaStruct(struct)"""
+    interleaved_data = [(fit_data[i], interp_dists[i], start_params)
+                        for i in range(len(fit_data))]
+    print "Data is interleaved"
+    mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
+    print ("Starting MDA process, working on %d energies simultaneously" %
+           CONFIG["Number of Threads"])
+    output = mp_pool.map(fit_and_mcmc, interleaved_data)
 
 
-def make_and_load_structs(data, dists, cs_lib):
-    """This function makes the list of fit structures and loads each one"""
-    # make the set of structures
-    structs = [cs_lib.makeMdaStruct(len(data[i]), CONFIG["Maximum L"] + 1)
-               for i in range(len(data))]
-    for i in range(len(data)):
-        # first add the data
-        cs_lib.setMdaData(structs[i], data[i].ctypes.data)
-        # now set the distributions
-        for j in range(len(dists[i])):
-            cs_lib.setMdaDist(structs[i], j, dists[i][j].ctypes.data)
-    return structs
+def fit_and_mcmc(data_tuple):
+    """This function is the workhorse function, it loads the shared library,
+    generates the structure, performs the BFGS fit from each starting point
+    and then performs the MCMC using those fits"""
+    # first unpack the tuple
+    fit_data = data_tuple[0]
+    interp_dists = data_tuple[1]
+    start_points = data_tuple[2]
+    # now load the shared library
+
+
+def calc_start_params():
+    """This function uses the config data to generate a list of starting
+    points for the initial fits performed before the MCMC"""
+    # first load the sets into an array
+    sl_list = []
+    for i in range(CONFIG["Maximum L"]+1):
+        sl_list.append(CONFIG[("Start Pts a%d" % i)])
+    # now compute the total number of starting points
+    # also get a list of the lengths of each starting list
+    # also make a starting list of indices with everything set to 0
+    num_starts = 1
+    lengths = []
+    indices = []
+    for start_list in sl_list:
+        lengths.append(len(start_list))
+        num_starts *= len(start_list)
+        indices.append(0)
+    # now compute the list of starting points
+    start_list = []
+    for _ in range(num_starts):
+        # first construct the start list based on the current indices
+        curr_start = []
+        for i in range(len(indices)):
+            curr_start.append(sl_list[i][indices[i]])
+        start_list.append(curr_start)
+        # now increment the indices
+        increment_ind(indices, lengths)
+    # now return the list of starting points
+    return start_list
+
+
+def increment_ind(ind, lens):
+    """This function takes a list of indices and lengths and increments the
+    highest indice, resetting to zero as needed"""
+    start = len(ind)-1
+    for i in range(start,-1,-1):
+        if (ind[i] + 1) < lens[i]:
+            ind[i] += 1
+            break
+        else:
+            ind[i] = 0
 
 
 def interp_all_dists(dists, data):
