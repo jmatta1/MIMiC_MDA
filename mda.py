@@ -120,12 +120,11 @@ def fit_and_mcmc(data_tuple):
     # now load the shared library
     cs_lib = ct.cdll.LoadLibrary(CONFIG["Shared Lib Path"])
     # set the return types
-    cs_lib.makeMdaStruct.restype = c_void_p
-    cs_lib.calculateChi.restype = c_float
-    cs_lib.calculateLnLiklihood.restype = c_float
+    cs_lib.makeMdaStruct.restype = ct.c_void_p
+    cs_lib.calculateChi.restype = ct.c_float
+    cs_lib.calculateLnLiklihood.restype = ct.c_float
     # build the calculation object
     struct = make_calc_struct(cs_lib, fit_data, interp_dists)
-    #more stuff goes here
     # delete the struct
     cs_lib.freeMdaStruct(struct)
 
@@ -134,7 +133,7 @@ def make_calc_struct(cs_lib, data, dists):
     """This function takes the data and distributions and dumps the information
     into a freshly created struct"""
     # make a struct
-    out_struct = cs_lib.makeMdaStruct(len(data),len(dists))
+    out_struct = cs_lib.makeMdaStruct(len(data), len(dists))
     # load it with the data
     cs_lib.setMdaData(out_struct, data.ctypes.date)
     # iterate through this distributions
@@ -180,7 +179,7 @@ def increment_ind(ind, lens):
     """This function takes a list of indices and lengths and increments the
     highest indice, resetting to zero as needed"""
     start = len(ind)-1
-    for i in range(start,-1,-1):
+    for i in range(start, -1, -1):
         if (ind[i] + 1) < lens[i]:
             ind[i] += 1
             break
