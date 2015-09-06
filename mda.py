@@ -125,8 +125,29 @@ def fit_and_mcmc(data_tuple):
     cs_lib.calculateLnLiklihood.restype = ct.c_float
     # build the calculation object
     struct = make_calc_struct(cs_lib, fit_data, interp_dists)
+    # now map the perform fit function onto the set of starting points
+    final_points = map(lambda x: do_init_fit(x, struct, cs_lib), start_points)
+    # clusterize the final points
+    centers = clusterize_points(final_points)
+    # generate the starting points for the walkers
+    starts = gen_walker_starts(centers)
+    # perform the MCMC
+    # write the triangle plots
+    # extract the error bars
     # delete the struct
     cs_lib.freeMdaStruct(struct)
+    #return the point and the errors
+    return None
+
+
+def clusterize_points(points)
+    """Takes the points given and tries to find clusters"""
+    return points
+
+
+def do_init_fit(start, struct, cs_lib):
+    """Performs a fit from the given starting point"""
+    return start
 
 
 def make_calc_struct(cs_lib, data, dists):
