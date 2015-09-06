@@ -125,6 +125,9 @@ def fit_and_mcmc(data_tuple):
     cs_lib.calculateLnLiklihood.restype = c_float
     # build the calculation object
     struct = make_calc_struct(cs_lib, fit_data, interp_dists)
+    #more stuff goes here
+    # delete the struct
+    cs_lib.freeMdaStruct(struct)
 
 
 def make_calc_struct(cs_lib, data, dists):
