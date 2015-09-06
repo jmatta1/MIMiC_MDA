@@ -25,7 +25,13 @@ if sys.argv[1][-3:] == ".py":
     CF_FILE_NAME = sys.argv[1][0:-3]
 else:
     CF_FILE_NAME = sys.argv[1]
+# prevent bytecode generation for the config file
+ORIGINAL_SYS_DONT_WRITE_BYTECODE = sys.dont_write_bytecode
+sys.dont_write_bytecode = True
+# import the config file
 CONFIG = __import__(CF_FILE_NAME).CONFIG
+# restore the dont_write_bytecode variable to its original value
+sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 
 
 def main():
