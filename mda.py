@@ -118,6 +118,28 @@ def fit_and_mcmc(data_tuple):
     interp_dists = data_tuple[1]
     start_points = data_tuple[2]
     # now load the shared library
+    cs_lib = ct.cdll.LoadLibrary(CONFIG["Shared Lib Path"])
+    # set the return types
+    cs_lib.makeMdaStruct.restype = c_void_p
+    cs_lib.calculateChi.restype = c_float
+    cs_lib.calculateLnLiklihood.restype = c_float
+    # build the calculation object
+    struct = make_calc_struct(cs_lib, fit_data, interp_dists)
+
+
+def make_calc_struct(cs_lib, data, dists):
+    """This function takes the data and distributions and dumps the information
+    into a freshly created struct"""
+    # make a struct
+    out_struct = cs_lib.makeMdaStruct(len(data),len(dists))
+    # load it with the data
+    cs_lib.setMdaData(out_struct, data.ctypes.date)
+    # iterate through this distributions
+    for i in range(len(dists)):
+        # load the distributions
+        cs_lib.setMdaDist(out_struct, i, dists[i].ctypes.data)
+    # return the struct
+    return out_struct
 
 
 def calc_start_params():
