@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
     printf("make struct, took: %d microseconds\n", diff);
     
     //make some data
-    float testArr[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+    double testArr[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
     
     //test the set data function
     t1 = clock();
@@ -40,9 +40,9 @@ int main(int argc, char* argv[])
     struct timespec t4;
     
     //test the calculate chi function
-    float paramArray[3] = {0.2, 0.2, 0.2};
+    double paramArray[3] = {0.2, 0.2, 0.2};
     clock_gettime(CLOCK_MONOTONIC , &t3);
-    float chi = calculateChi(dataPtr, paramArray);
+    double chi = calculateChi(dataPtr, paramArray);
     for( int i=0; i< 30; ++i)
     {
         calculateChi(dataPtr, paramArray);
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     printf("  the chi was: %f\n", chi);
     
     //test the calc log liklihood with resids function
-    float* residArray = (float*) memalign(64,sizeof(float)*10);
+    double* residArray = (double*) memalign(64,sizeof(double)*10);
     clock_gettime(CLOCK_MONOTONIC , &t3);
     chi = calculateLnLiklihoodResids(dataPtr, paramArray, residArray);
     for( int i=0; i< 30; ++i)

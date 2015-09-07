@@ -19,12 +19,12 @@ typedef struct MdaDataStruct
     int numLs;
     //stores the predivided data points
     //contains numPoints cells
-    float* data;
+    double* data;
     //stores the set of interpolated distributions
     //contains numPoints*numLVals cells
-    float* dists;
+    double* dists;
     //stores the list of residuals needed on a temporary basis
-    float* resids;
+    double* resids;
 } MdaData;
 
 //allocate the structure
@@ -34,18 +34,18 @@ __attribute__((malloc)) void* makeMdaStruct(int numPts, int numL);
 void freeMdaStruct(void* strPtr);
 
 //assign the data array
-void setMdaData(void* strPtr, float* divData);
+void setMdaData(void* strPtr, double* divData);
 
 //assign one of the distributions
-void setMdaDist(void* strPtr, int distIndex, float* dist);
+void setMdaDist(void* strPtr, int distIndex, double* dist);
 
 //calculate the chi^2
-float calculateChi(void* strPtr, float* params);
+double calculateChi(void* strPtr, double* params);
 
 //calculate the log liklihood
-float calculateLnLiklihood(void* strPtr, float* params);
+double calculateLnLiklihood(void* strPtr, double* params);
 
 //calculate the log liklihood with provided residArray
-float calculateLnLiklihoodResids(void* strPtr, float* params, float* residArray);
+double calculateLnLiklihoodResids(void* strPtr, double* params, double* residArray);
 
 #endif  // MDA_MCMC_C_CHI_SQUARE_H

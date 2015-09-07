@@ -20,22 +20,22 @@ __attribute__((malloc)) void* makeMdaStruct(int numPts, int numL)
     MdaData* temp = (MdaData*) malloc(sizeof(MdaData));
     temp->numPts = numPts;
     temp->numLs = numL;
-    //temp->data = (float*) malloc(sizeof(float)*numPts);
-    //temp->dists = (float*) malloc(sizeof(float)*numPts*numL);
-    //temp->resids = (float*) malloc(sizeof(float)*numPts);
-    temp->data = (float*) memalign(ALIGN_BOUND,sizeof(float)*numPts);
-    temp->dists = (float*) memalign(ALIGN_BOUND,sizeof(float)*numPts*numL);
-    temp->resids = (float*) memalign(ALIGN_BOUND,sizeof(float)*numPts);
+    //temp->data = (double*) malloc(sizeof(double)*numPts);
+    //temp->dists = (double*) malloc(sizeof(double)*numPts*numL);
+    //temp->resids = (double*) malloc(sizeof(double)*numPts);
+    temp->data = (double*) memalign(ALIGN_BOUND,sizeof(double)*numPts);
+    temp->dists = (double*) memalign(ALIGN_BOUND,sizeof(double)*numPts*numL);
+    temp->resids = (double*) memalign(ALIGN_BOUND,sizeof(double)*numPts);
 #ifdef MAKE_AND_FREE_OUTPUT
     printf("\n\nMdaDataStruct is: %d bytes\n", sizeof(MdaData));
     printf("MdaDataStruct is at: %p\n", temp);
     printf("Number of points is: %d\n", numPts);
     printf("Number of L values is: %d\n", numL);
-    printf("Data size is: %d bytes\n", sizeof(float)*numPts);
+    printf("Data size is: %d bytes\n", sizeof(double)*numPts);
     printf("Data is at: %p\n", temp->data);
-    printf("Distribution size is: %d bytes\n", sizeof(float)*numPts*numL);
+    printf("Distribution size is: %d bytes\n", sizeof(double)*numPts*numL);
     printf("Distributions are at: %p\n", temp->dists);
-    printf("Residual size is: %d bytes\n", sizeof(float)*numPts);
+    printf("Residual size is: %d bytes\n", sizeof(double)*numPts);
     printf("Residuals are at: %p\n", temp->resids);
 #endif
     return ((void*)temp);
@@ -62,7 +62,7 @@ void freeMdaStruct(void* strPtr)
     free(temp);
 }
 
-void setMdaData(void* strPtr, float* divData)
+void setMdaData(void* strPtr, double* divData)
 {
     MdaData* data = (MdaData*)strPtr;
 #ifdef ASSIGN_DATA_OUTPUT
@@ -78,7 +78,7 @@ void setMdaData(void* strPtr, float* divData)
     }
 }
 
-void setMdaDist(void* strPtr, int distIndex, float* dist)
+void setMdaDist(void* strPtr, int distIndex, double* dist)
 {
     MdaData* data = (MdaData*)strPtr;
     if (distIndex >= data->numLs)
@@ -95,7 +95,7 @@ void setMdaDist(void* strPtr, int distIndex, float* dist)
     printf("Offset is: %d\n", offset);
 #endif
     
-    float* temp = &(data->dists[offset]);
+    double* temp = &(data->dists[offset]);
     
     for (int i=0; i<data->numPts; ++i)
     {
@@ -107,16 +107,16 @@ void setMdaDist(void* strPtr, int distIndex, float* dist)
     }
 }
 
-float calculateChi(void* strPtr, float* params)
+double calculateChi(void* strPtr, double* params)
 {
     MdaData* data = (MdaData*)strPtr;
     int numPts = data->numPts;
     int numL = data->numLs;
-    float* exp = data->data;
-    float* dists = data->dists;
-    float* res = data->resids;
-    float pVal = params[0];
-    float* dist = dists;
+    double* exp = data->data;
+    double* dists = data->dists;
+    double* res = data->resids;
+    double pVal = params[0];
+    double* dist = dists;
 
 #ifdef CALC_CHI_OUTPUT
     printf("struct is %p, param is: %f\n", data, params[0]);
@@ -126,38 +126,37 @@ float calculateChi(void* strPtr, float* params)
     for (int j=0; j<numPts; ++j)
     {
 #ifdef CALC_CHI_OUTPUT
-    printf("struct is %p, data is: %f\n", data, exp[j]);
-    printf("struct is %p, dist is: %f\n", data, dist[j]);
+        //printf("struct is %p, data is: %f\n", data, exp[j]);
+        //printf("struct is %p, dist is: %f\n", data, dist[j]);
 #endif
         res[j] = (exp[j]-(pVal*dist[j]));
 #ifdef CALC_CHI_OUTPUT
-    printf("struct is %p, res is: %f\n", data, res[j]);
+        //printf("struct is %p, res is: %f\n", data, res[j]);
 #endif
     }
 
     //iterate across the distributions
     for(int i=1; i<numL; ++i)
     {
-        float pVal = params[i];
+        double pVal = params[i];
 #ifdef CALC_CHI_OUTPUT
     printf("struct is %p, param is: %f\n", data, params[i]);
 #endif
-        float* dist = &(dists[i*numPts]);
+        double* dist = &(dists[i*numPts]);
         for (int j=0; j<numPts; ++j)
         {
             res[j] -= (pVal*dist[j]);
         }
     }
     
-#ifdef CALC_CHI_OUTPUT
-    printf("struct is %p, res[0] is: %f\n", data, res[0]);
-#endif
-    
-    float chi = 0.0f;
+    double chi = 0.0f;
     
     //now accumulate the residuals squared and return them
     for(int i=0; i<numPts; ++i)
     {
+#ifdef CALC_CHI_OUTPUT
+            printf("struct is %p, res[%d] is: %f\n", data, i, res[i]);
+#endif
         chi += (res[i]*res[i]);
     }
 
@@ -170,16 +169,16 @@ float calculateChi(void* strPtr, float* params)
 
 
 //calculate the log liklihood
-float calculateLnLiklihood(void* strPtr, float* params)
+double calculateLnLiklihood(void* strPtr, double* params)
 {
     MdaData* data = (MdaData*)strPtr;
     int numPts = data->numPts;
     int numL = data->numLs;
-    float* exp = data->data;
-    float* dists = data->dists;
-    float* res = data->resids;
-    float pVal = params[0];
-    float* dist = dists;
+    double* exp = data->data;
+    double* dists = data->dists;
+    double* res = data->resids;
+    double pVal = params[0];
+    double* dist = dists;
     
     //subtract the first distribution to load the residuals
     for (int j=0; j<numPts; ++j)
@@ -190,15 +189,15 @@ float calculateLnLiklihood(void* strPtr, float* params)
     //iterate across the distributions
     for(int i=1; i<numL; ++i)
     {
-        float pVal = params[i];
-        float* dist = &(dists[i*numPts]);
+        double pVal = params[i];
+        double* dist = &(dists[i*numPts]);
         for (int j=0; j<numPts; ++j)
         {
             res[j] -= (pVal*dist[j]);
         }
     }
     
-    float chi = 0.0f;
+    double chi = 0.0f;
     
     //now accumulate the residuals squared and return them
     for(int i=0; i<numPts; ++i)
@@ -210,15 +209,15 @@ float calculateLnLiklihood(void* strPtr, float* params)
 }
 
 //calculate the log liklihood
-float calculateLnLiklihoodResids(void* strPtr, float* params, float* residArray)
+double calculateLnLiklihoodResids(void* strPtr, double* params, double* residArray)
 {
     MdaData* data = (MdaData*)strPtr;
     int numPts = data->numPts;
     int numL = data->numLs;
-    float* exp = data->data;
-    float* dists = data->dists;
-    float pVal = params[0];
-    float* dist = dists;
+    double* exp = data->data;
+    double* dists = data->dists;
+    double pVal = params[0];
+    double* dist = dists;
     
     //subtract the first distribution to load the residuals
     for (int j=0; j<numPts; ++j)
@@ -229,15 +228,15 @@ float calculateLnLiklihoodResids(void* strPtr, float* params, float* residArray)
     //iterate across the distributions
     for(int i=1; i<numL; ++i)
     {
-        float pVal = params[i];
-        float* dist = &(dists[i*numPts]);
+        double pVal = params[i];
+        double* dist = &(dists[i*numPts]);
         for (int j=0; j<numPts; ++j)
         {
             residArray[j] -= (pVal*dist[j]);
         }
     }
     
-    float chi = 0.0f;
+    double chi = 0.0f;
     
     //now accumulate the residuals squared and return them
     for(int i=0; i<numPts; ++i)
