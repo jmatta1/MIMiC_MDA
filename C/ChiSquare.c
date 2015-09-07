@@ -6,7 +6,7 @@
 
 #include"./ChiSquare.h"
 #if defined(MAKE_AND_FREE_OUTPUT) || defined(ASSIGN_DATA_OUTPUT) || \
-    defined(ASSIGN_DIST_OUTPUT)
+    defined(ASSIGN_DIST_OUTPUT) || defined(CALC_CHI_OUTPUT)
 #include<stdio.h>
 #endif
 //removing stdlib since instead of malloc we are now using memalign
@@ -117,23 +117,41 @@ float calculateChi(void* strPtr, float* params)
     float* res = data->resids;
     float pVal = params[0];
     float* dist = dists;
+
+#ifdef CALC_CHI_OUTPUT
+    printf("struct is %p, param is: %f\n", data, params[0]);
+#endif
     
     //first use only the first distribution to load the residuals
     for (int j=0; j<numPts; ++j)
     {
+#ifdef CALC_CHI_OUTPUT
+    printf("struct is %p, data is: %f\n", data, exp[j]);
+    printf("struct is %p, dist is: %f\n", data, dist[j]);
+#endif
         res[j] = (exp[j]-(pVal*dist[j]));
+#ifdef CALC_CHI_OUTPUT
+    printf("struct is %p, res is: %f\n", data, res[j]);
+#endif
     }
 
     //iterate across the distributions
     for(int i=1; i<numL; ++i)
     {
         float pVal = params[i];
+#ifdef CALC_CHI_OUTPUT
+    printf("struct is %p, param is: %f\n", data, params[i]);
+#endif
         float* dist = &(dists[i*numPts]);
         for (int j=0; j<numPts; ++j)
         {
             res[j] -= (pVal*dist[j]);
         }
     }
+    
+#ifdef CALC_CHI_OUTPUT
+    printf("struct is %p, res[0] is: %f\n", data, res[0]);
+#endif
     
     float chi = 0.0f;
     
@@ -142,6 +160,10 @@ float calculateChi(void* strPtr, float* params)
     {
         chi += (res[i]*res[i]);
     }
+
+#ifdef CALC_CHI_OUTPUT
+    printf("struct is %p, chi is: %f\n", data, chi);
+#endif
     
     return chi;
 }
