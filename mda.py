@@ -13,6 +13,7 @@ import numpy as np
 import copy
 import ctypes as ct
 from scipy import interpolate
+from scipy import optimize
 
 # firsts we check the command line and grab the module name
 if len(sys.argv) != 2:
@@ -106,7 +107,9 @@ def initialize_mda():
     mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print ("Starting MDA process, working on %d energies simultaneously" %
            CONFIG["Number of Threads"])
-    output = mp_pool.map(fit_and_mcmc, interleaved_data)
+    # output = mp_pool.map(fit_and_mcmc, interleaved_data)
+    # single threaded version for debugging
+    output = map(fit_and_mcmc, interleaved_data)
 
 
 def fit_and_mcmc(data_tuple):
@@ -140,14 +143,41 @@ def fit_and_mcmc(data_tuple):
     return None
 
 
-def clusterize_points(points)
+def gen_walker_starts(centers):
+    """This function takes the set of cluster centers and generates the walker
+    start positions from them"""
+    return centers
+
+
+def clusterize_points(points):
     """Takes the points given and tries to find clusters"""
     return points
 
 
 def do_init_fit(start, struct, cs_lib):
     """Performs a fit from the given starting point"""
+    # calculate the bounds
+    bnds = [(0.0, 1.0/x) for x in CONFIG["EWSR Fractions"]]
+    print call_chi_sq(np.array(start, dtype=np.float32), cs_lib, struct)
+    init_params = np.array(start, dtype = np.float32)
+    min_pos, min_chi, d = optimize.fmin_l_bfgs_b(call_chi_sq,
+                                                 init_params,
+                                                 bounds = bnds,
+                                                 epsilon = 1e-03,
+                                                 approx_grad = True,
+                                                 args = (cs_lib, struct),
+                                                 iprint = 0, factr = 10.0)
+    print "bfgs done"
+    print start, min_pos, min_chi
     return start
+
+
+def call_chi_sq(params, cs_lib, struct):
+    """calls the chi^2 function in cs_lib"""
+    print params
+    temp = cs_lib.calculateChi(struct, params.ctypes.data)
+    print temp
+    return temp
 
 
 def make_calc_struct(cs_lib, data, dists):
@@ -156,7 +186,7 @@ def make_calc_struct(cs_lib, data, dists):
     # make a struct
     out_struct = cs_lib.makeMdaStruct(len(data), len(dists))
     # load it with the data
-    cs_lib.setMdaData(out_struct, data.ctypes.date)
+    cs_lib.setMdaData(out_struct, data.ctypes.data)
     # iterate through this distributions
     for i in range(len(dists)):
         # load the distributions
@@ -226,7 +256,8 @@ def interp_all_dists(dists, data):
         # iterate across the L values
         for j in range(len(dists[i])):
             # interpolate and divide the distribution
-            interp_data = interpolate_dist(dists[i][j], angle_list, error_list)
+            interp_data = interpolate_dist(dists[i][j], angle_list,
+                                           error_list).astype(np.float32)
             en_output.append(interp_data)
         # append the information for the distributions of this energy to output
         output.append(en_output)
@@ -256,7 +287,7 @@ def read_dist(energy, l_value):
     for line in dist_file:
         vals = [float(x.strip()) for x in line.strip().split(',')]
         output.append((vals[0], vals[1]))
-    return np.array(output)
+    return np.array(output, dtype=np.float32)
 
 
 def handle_ivgdr(data):
