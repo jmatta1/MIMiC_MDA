@@ -50,7 +50,7 @@ CONFIG["Max Theta"] = 10.0  # used
 # Energy such that all fitted energies are >= to it
 CONFIG["Start Energy"] = 11.4  # used
 # Energy such that all fitted energies are <= to it
-CONFIG["Final Energy"] = 14.6  # used
+CONFIG["Final Energy"] = 11.6  # used
 
 # Limits on and paramters of the fit
 # Maximum L value to fit with
