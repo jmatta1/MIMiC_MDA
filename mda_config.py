@@ -68,7 +68,7 @@ CONFIG["EWSR Fractions"] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]  # complete
 # 4 sigma -> 0.99993666
 CONFIG["Confidence Interval"] = 0.682689492  # unused
 # holds the number of points to sample for each walker
-CONFIG["Sample Points"] = 8050  # complete
+CONFIG["Sample Points"] = 2050  # complete
 # holds the number of walks to run
 CONFIG["Number of Walkers"] = 2000  # complete
 # holds the number of concurrent threads
