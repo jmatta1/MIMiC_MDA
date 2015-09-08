@@ -129,10 +129,10 @@ def initialize_mda():
                          start_params) for i in range(len(fit_data))]
     print "Data is interleaved"
     generate_output_dirs()
-    # mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
+    #mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print ("Starting MDA process, working on up to %d energies simultaneously" 
            % CONFIG["Number of Threads"])
-    # output = mp_pool.map(fit_and_mcmc, interleaved_data)
+    #output = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
     output = map(fit_and_mcmc, interleaved_data)
 
@@ -153,13 +153,12 @@ def fit_and_mcmc(data_tuple):
     cs_lib.makeMdaStruct.restype = ct.c_void_p
     cs_lib.calculateChi.restype = ct.c_double
     cs_lib.calculateLnLiklihood.restype = ct.c_double
-    print "Shared library loaded for", energy, "MeV"
     # build the calculation object
     struct = make_calc_struct(cs_lib, fit_data, interp_dists)
-    print "Commencing fits for", energy, "MeV"
+    print "Commencing initial fits for", energy, "MeV"
     # now map the perform fit function onto the set of starting points
     final_points = [do_init_fit(x, struct, cs_lib) for x in start_points]
-    print "Initial fits are done for", energy, "MeV"
+    print "Finished initial fits for", energy, "MeV"
     # sort the list of starting points in order of chi^2
     final_points.sort(key=lambda x: x[0])
     # then take the first CONFIG["Number Walker Generators"]
@@ -182,26 +181,74 @@ def fit_and_mcmc(data_tuple):
     samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
                                                             num_samples, ndims))
     print "Finished MCMC for", energy, "MeV"
-    # make the triangle plot
-    lbls = [r"$a_{%d}$" % i for i in range(ndims)]
-    ranges = [(-0.01, (0.001 + 1.1*samples[:,i].max())) for i in range(ndims)]
-    fig = tplot.corner(samples, labels=lbls, extents=ranges)
-    # make the triangle plot file_name
-    if CONFIG["Triangle Plots Directory"][-1] == '\\':
-        fig_file_name = CONFIG["Triangle Plots Directory"] +\
-                               "A%d_triangle_en_%4.1f.png" %\
-                               (CONFIG["Target A"], energy)
-    else:
-        fig_file_name = CONFIG["Triangle Plots Directory"] +\
-                               "\\A%d_triangle_en_%4.1f.png" %\
-                               (CONFIG["Target A"], energy)
-    fig.savefig(fig_file_name)
-    print "Done creating corner plot for", energy, "MeV"
+    # save the samples to the disk in the sp
+    if CONFIG["Save Chain Data"]:
+        print "Saving MCMC samples for", energy, "MeV"
+        chain_file_name = ""
+        if CONFIG["Chain Directory"][-1] == '/':
+            chain_file_name = CONFIG["Chain Directory"] +\
+                                  "A%d_chain_en_%4.1f.png" %\
+                                  (CONFIG["Target A"], energy)
+        else:
+            chain_file_name = CONFIG["Chain Directory"] +\
+                                  "/A%d_chain_en_%4.1f.png" %\
+                                  (CONFIG["Target A"], energy)
+        np.savez_compressed(chain_file_name, sampler.chain)
+        print "Done saving MCMC samples for", energy, "MeV"
+    #make the probability plots
+    make_prob_plots(samples)
     # extract the error bars
+    points = calc_param_values_percentiles(samples)
+    # make the corner plot
+    if CONFIG["Generate Corner Plots"]:
+        print "Commencing corner plot creation for", energy, "MeV"
+        true_vals = [ x[0] for x in points ]
+        lbls = [r"$a_{%d}$" % i for i in range(ndims)]
+        ranges = [(-0.001, (0.001 + 1.1*samples[:,i].max())) for i in
+                  range(ndims)]
+        fit = None
+        if CONFIG["Corner Plot Samples"] >= num_samples:
+            fig = tplot.corner(samples, labels=lbls, extents=ranges, 
+                               truths=true_vals)
+        else:
+            # randomize the sample array and then extract the first chunk of it
+            np.random.shuffle(samples)
+            temp_samples = samples[0:CONFIG["Corner Plot Samples"]]
+            fig = tplot.corner(temp_samples, labels=lbls, extents=ranges, 
+                               truths=true_vals)
+        # make the corner plot file_name
+        if CONFIG["Corner Plots Directory"][-1] == '/':
+            fig_file_name = CONFIG["Corner Plots Directory"] +\
+                                   "A%d_triangle_en_%4.1f.png" %\
+                                   (CONFIG["Target A"], energy)
+        else:
+            fig_file_name = CONFIG["Corner Plots Directory"] +\
+                                   "/A%d_triangle_en_%4.1f.png" %\
+                                   (CONFIG["Target A"], energy)
+        fig.savefig(fig_file_name)
+        print "Done creating corner plot for", energy, "MeV"
     # delete the struct
     cs_lib.freeMdaStruct(struct)
     # return the point and the errors
-    return None
+    return points
+
+
+def calc_param_values_percentiles(samples):
+    """This function takes a list of MCMC samples and finds the 50th percentile
+    as the parameter value and the appropriate other percentiles values as the
+    errors of that parameter"""
+    lo_ptile = (100.0*((1.0-CONFIG["Confidence Interval"])/2.0))
+    hi_ptile = (100.0 - lo_ptile)
+    val = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
+              zip(*np.percentile(samples, [lo_ptile, 50.0, hi_ptile], axis=0)))
+    return val
+
+
+def make_prob_plots(samples):
+    """this function takes the list of samples and makes histograms of the
+    probability distributions of the parameters using matplotlib and writes
+    those histograms to the specified directory"""
+    pass
 
 
 def ln_post_prob(params, cs_lib, struct, bounds):
@@ -282,17 +329,24 @@ def generate_output_dirs():
     # test / create the directory for csv files with individial fits
     if not os.path.exists(CONFIG["Fits Csv Directory"]):
         os.makedirs(CONFIG["Fits Csv Directory"])
-    # test / create the directory for triangle plots
-    if not os.path.exists(CONFIG["Triangle Plots Directory"]):
-        os.makedirs(CONFIG["Triangle Plots Directory"])
+    # test / create the directory for corner plots
+    if not os.path.exists(CONFIG["Corner Plots Directory"]):
+        os.makedirs(CONFIG["Corner Plots Directory"])
+    # test / create the directory for probability plots
+    if not os.path.exists(CONFIG["Prob Plots Directory"]):
+        os.makedirs(CONFIG["Prob Plots Directory"])
     # test / create the directory for fit plots
     if not os.path.exists(CONFIG["Fit Plots Directory"]):
         os.makedirs(CONFIG["Fit Plots Directory"])
+    # test / create the directory for Markov Chains
+    if not os.path.exists(CONFIG["Chain Directory"]):
+        os.makedirs(CONFIG["Chain Directory"])
     # test / create the directory for Parameter Plots
     if not os.path.exists(CONFIG["Parameter Plots Directory"]):
         os.makedirs(CONFIG["Parameter Plots Directory"])
     # get the directory for the output file
     dir_name = os.path.dirname(CONFIG["Parameter File"])
+    # test / create the directory for the output file
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
 
