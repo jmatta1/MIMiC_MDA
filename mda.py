@@ -9,9 +9,12 @@ which is in the emcee package"""
 import sys
 import multiprocessing
 import math
-import numpy as np
 import copy
+import emcee
+import os
+import numpy as np
 import ctypes as ct
+import triangle as tplot
 from scipy import interpolate
 from scipy import optimize
 
@@ -47,16 +50,19 @@ def main():
         print "\nInvalid number of threads, on this machine it must be: "
         print 'CONFIG["Number of Threads"] <= %d\n' % cpu_count
         sys.exit()
-    num_samples = ((CONFIG["Sample Points"] - 50)
+    # check if the user set the sampling high enough for the error bars wished
+    num_samples = ((CONFIG["Sample Points"] - CONFIG["Burn-in Points"])
                    * CONFIG["Number of Walkers"])
     samples_needed = int(math.ceil(10.0 /
                                    ((1.0 - CONFIG["Confidence Interval"]) /
                                     2.0)))
     if samples_needed > num_samples:
         print SAMPLES_ERROR % (num_samples, CONFIG["Sample Points"],
+                               CONFIG["Burn-in Points"],
                                CONFIG["Number of Walkers"], samples_needed,
                                CONFIG["Confidence Interval"])
         sys.exit()
+    # make certain the user gave enough EWSR fractions for the max L
     num_dists = (1 + CONFIG["Maximum L"])
     num_ewsr = len(CONFIG["EWSR Fractions"])
     if num_ewsr > num_dists:
@@ -70,6 +76,24 @@ def main():
             "(1 + CONFIGURATION[\"Maximum L\"]) = %d\n" % num_dists,\
             "EWSR fractions listed in the variable",\
             "CONFIGURATION[\"EWSR Fractions\"], %d were given\n" % num_ewsr
+        sys.exit()
+    # check to make certain that there are at least 10 start points
+    len_array = [len(CONFIG["Start Pts a%d" % i]) for i in range(num_dists)]
+    num_cells = 1
+    for size in len_array:
+        num_cells *= size
+    if num_cells < CONFIG["Number Walker Generators"]:
+        out_str = """You must provide enough starting points such that there are at
+        least %d points (the number of start points is the length of
+        each start list multiplied together)""" %\
+            CONFIG["Number Walker Generators"]
+        print out_str
+        sys.exit()
+    # check to make certain that num sampes is a multiple of min start points
+    if (num_samples % CONFIG["Number Walker Generators"]) != 0:
+        print 'The product ((CONFIG["Sample Points"]-CONFIG["Burn-in Points"])'\
+            '*CONFIG["Number of Walkers"])\n must be a multiple of %d' %\
+            CONFIG["Number Walker Generators"]
         sys.exit()
     # call the function that calls everything else
     initialize_mda()
@@ -101,12 +125,13 @@ def initialize_mda():
     start_params = calc_start_params()
     print "Finished calculating parameter starting point list"""
     # now interleave things so we are ready to use pool.map across everything
-    interleaved_data = [(fit_data[i], interp_dists[i], start_params)
-                        for i in range(len(fit_data))]
+    interleaved_data = [(exp_data[i][0], fit_data[i], interp_dists[i],
+                         start_params) for i in range(len(fit_data))]
     print "Data is interleaved"
-    mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
-    print ("Starting MDA process, working on %d energies simultaneously" %
-           CONFIG["Number of Threads"])
+    generate_output_dirs()
+    # mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
+    print ("Starting MDA process, working on up to %d energies simultaneously" 
+           % CONFIG["Number of Threads"])
     # output = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
     output = map(fit_and_mcmc, interleaved_data)
@@ -117,66 +142,122 @@ def fit_and_mcmc(data_tuple):
     generates the structure, performs the BFGS fit from each starting point
     and then performs the MCMC using those fits"""
     # first unpack the tuple
-    fit_data = data_tuple[0]
-    interp_dists = data_tuple[1]
-    start_points = data_tuple[2]
+    energy = data_tuple[0]
+    fit_data = data_tuple[1]
+    interp_dists = data_tuple[2]
+    start_points = data_tuple[3]
+    print "Starting work on Energy", energy, "MeV"
     # now load the shared library
     cs_lib = ct.cdll.LoadLibrary(CONFIG["Shared Lib Path"])
     # set the return types
     cs_lib.makeMdaStruct.restype = ct.c_void_p
-    cs_lib.calculateChi.restype = ct.c_float
-    cs_lib.calculateLnLiklihood.restype = ct.c_float
+    cs_lib.calculateChi.restype = ct.c_double
+    cs_lib.calculateLnLiklihood.restype = ct.c_double
+    print "Shared library loaded for", energy, "MeV"
     # build the calculation object
     struct = make_calc_struct(cs_lib, fit_data, interp_dists)
+    print "Commencing fits for", energy, "MeV"
     # now map the perform fit function onto the set of starting points
-    final_points = map(lambda x: do_init_fit(x, struct, cs_lib), start_points)
-    # clusterize the final points
-    centers = clusterize_points(final_points)
+    final_points = [do_init_fit(x, struct, cs_lib) for x in start_points]
+    print "Initial fits are done for", energy, "MeV"
+    # sort the list of starting points in order of chi^2
+    final_points.sort(key=lambda x: x[0])
+    # then take the first CONFIG["Number Walker Generators"]
+    generators = [x[1] for x in
+                  final_points[0:CONFIG["Number Walker Generators"]]]
     # generate the starting points for the walkers
-    starts = gen_walker_starts(centers)
+    starts = gen_walker_starts(generators)
+    # calculate the boundaries of the ensemble
+    bnds = [(0.0, 1.0/x) for x in CONFIG["EWSR Fractions"]]
+    # create the sampling ensemble
+    ndims = (1 + CONFIG["Maximum L"])
+    print "Commencing MCMC for", energy, "MeV"
+    sampler = emcee.EnsembleSampler(CONFIG["Number of Walkers"], ndims,
+                                    ln_post_prob, args=(cs_lib, struct, bnds))
     # perform the MCMC
-    # write the triangle plots
+    sampler.run_mcmc(starts, CONFIG["Sample Points"])
+    # retrieve the samples
+    num_samples = (CONFIG["Number of Walkers"] * (CONFIG["Sample Points"] -\
+                                                  CONFIG["Burn-in Points"]))
+    samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
+                                                            num_samples, ndims))
+    print "Finished MCMC for", energy, "MeV"
+    # make the triangle plot
+    lbls = [r"$a_{%d}$" % i for i in range(ndims)]
+    ranges = [(-0.01, (0.001 + 1.1*samples[:,i].max())) for i in range(ndims)]
+    fig = tplot.corner(samples, labels=lbls, extents=ranges)
+    # make the triangle plot file_name
+    if CONFIG["Triangle Plots Directory"][-1] == '\\':
+        fig_file_name = CONFIG["Triangle Plots Directory"] +\
+                               "A%d_triangle_en_%4.1f.png" %\
+                               (CONFIG["Target A"], energy)
+    else:
+        fig_file_name = CONFIG["Triangle Plots Directory"] +\
+                               "\\A%d_triangle_en_%4.1f.png" %\
+                               (CONFIG["Target A"], energy)
+    fig.savefig(fig_file_name)
+    print "Done creating corner plot for", energy, "MeV"
     # extract the error bars
     # delete the struct
     cs_lib.freeMdaStruct(struct)
-    #return the point and the errors
+    # return the point and the errors
     return None
 
 
-def gen_walker_starts(centers):
+def ln_post_prob(params, cs_lib, struct, bounds):
+    """This function calculates the log of the post probability function"""
+    # first check if we are outside the resonable parameter range, if so,
+    # return negative infinity, which corresponds to a probability of 0
+    for i in range(len(bounds)):
+        if params[i] < bounds[i][0] or params[i] > bounds[i][1]:
+            return -np.inf
+    return cs_lib.calculateLnLiklihood(struct, params.ctypes.data)
+
+
+def gen_walker_starts(gens):
     """This function takes the set of cluster centers and generates the walker
     start positions from them"""
-    return centers
+    # store the number of dimensions
+    ndims = (1 + CONFIG["Maximum L"])
+    # generate the output
+    output = [randomize_position(gens[i % CONFIG["Number Walker Generators"]],
+                                 ndims)
+              for i in range(CONFIG["Number of Walkers"])]
+    return output
 
 
-def clusterize_points(points):
-    """Takes the points given and tries to find clusters"""
-    return points
+def randomize_position(gen, ndims):
+    """This function takes a generator position and suitable randomizes it"""
+    # make an array of randomizers, normally distributed around zero
+    rands = CONFIG["Sample Spread"]*np.random.standard_normal(ndims)
+    # convert them to fractions of the original value
+    randomizer = (np.ones((ndims), dtype=np.float64) - rands)
+    # make the randomized positions
+    position = (gen*randomizer)
+    # now if any of the positions are negative set them to zero
+    for i in range(ndims):
+        if position[i] < 0.0:
+            position[i] = 0.0
+    return position
 
 
 def do_init_fit(start, struct, cs_lib):
     """Performs a fit from the given starting point"""
     # calculate the bounds
     bnds = [(0.0, 1.0/x) for x in CONFIG["EWSR Fractions"]]
-    print call_chi_sq(np.array(start, dtype=np.float32), cs_lib, struct)
-    init_params = np.array(start, dtype = np.float32)
-    min_pos, min_chi, d = optimize.fmin_l_bfgs_b(call_chi_sq,
-                                                 init_params,
-                                                 bounds = bnds,
-                                                 epsilon = 1e-03,
-                                                 approx_grad = True,
-                                                 args = (cs_lib, struct),
-                                                 iprint = 0, factr = 10.0)
-    print "bfgs done"
-    print start, min_pos, min_chi
-    return start
+    # print call_chi_sq(np.array(start, dtype=np.float64), cs_lib, struct)
+    init_params = np.array(start, dtype=np.float64)
+    ret_vals = optimize.fmin_l_bfgs_b(call_chi_sq,
+                                      init_params, bounds=bnds,
+                                      epsilon=1e-03, approx_grad=True,
+                                      args=(cs_lib, struct), iprint=0,
+                                      factr=10.0)
+    return (ret_vals[1], ret_vals[0])
 
 
 def call_chi_sq(params, cs_lib, struct):
     """calls the chi^2 function in cs_lib"""
-    print params
     temp = cs_lib.calculateChi(struct, params.ctypes.data)
-    print temp
     return temp
 
 
@@ -193,6 +274,27 @@ def make_calc_struct(cs_lib, data, dists):
         cs_lib.setMdaDist(out_struct, i, dists[i].ctypes.data)
     # return the struct
     return out_struct
+
+
+def generate_output_dirs():
+    """This function checks for the existence of the directories output is to
+    be placed in, if they do not exist, they are created"""
+    # test / create the directory for csv files with individial fits
+    if not os.path.exists(CONFIG["Fits Csv Directory"]):
+        os.makedirs(CONFIG["Fits Csv Directory"])
+    # test / create the directory for triangle plots
+    if not os.path.exists(CONFIG["Triangle Plots Directory"]):
+        os.makedirs(CONFIG["Triangle Plots Directory"])
+    # test / create the directory for fit plots
+    if not os.path.exists(CONFIG["Fit Plots Directory"]):
+        os.makedirs(CONFIG["Fit Plots Directory"])
+    # test / create the directory for Parameter Plots
+    if not os.path.exists(CONFIG["Parameter Plots Directory"]):
+        os.makedirs(CONFIG["Parameter Plots Directory"])
+    # get the directory for the output file
+    dir_name = os.path.dirname(CONFIG["Parameter File"])
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
 
 
 def calc_start_params():
@@ -257,7 +359,7 @@ def interp_all_dists(dists, data):
         for j in range(len(dists[i])):
             # interpolate and divide the distribution
             interp_data = interpolate_dist(dists[i][j], angle_list,
-                                           error_list).astype(np.float32)
+                                           error_list).astype(np.float64)
             en_output.append(interp_data)
         # append the information for the distributions of this energy to output
         output.append(en_output)
@@ -271,7 +373,7 @@ def interpolate_dist(dist, angles, errors):
     # construct the interpolation
     interp = interpolate.interp1d(dist[:, 0], dist[:, 1], kind="cubic")
     # get the interpolated values divided by the errors and return them
-    return interp(angles)/errors
+    return (interp(angles)/errors).astype(np.float64)
 
 
 def read_dist(energy, l_value):
@@ -287,7 +389,7 @@ def read_dist(energy, l_value):
     for line in dist_file:
         vals = [float(x.strip()) for x in line.strip().split(',')]
         output.append((vals[0], vals[1]))
-    return np.array(output, dtype=np.float32)
+    return np.array(output, dtype=np.float64)
 
 
 def handle_ivgdr(data):
@@ -341,7 +443,7 @@ def read_ivgdr_dists(en_list):
         dist_file = open(name, 'r')
         dist = [[float(elem) for elem in line.strip().split(',')]
                 for line in dist_file]
-        dists_list.append(np.array(dist, dtype=np.float32))
+        dists_list.append(np.array(dist, dtype=np.float64))
     return dists_list
 
 
@@ -412,14 +514,14 @@ def read_row_cs_data_file(file_name, max_angle, min_en, max_en):
                 # if 15.4 < energy and energy < 15.6:
                 #    print distData[i],",",distData[i+1],",",distData[i+2]
             # put the energy and its associated distribution in a list
-            output.append([energy, np.array(distribution, dtype=np.float32)])
+            output.append([energy, np.array(distribution, dtype=np.float64)])
     print "Exp Data is read in"
     return output
 
 
 SAMPLES_ERROR = """
 WARNING: the number of samples:
-%d = ((%d - 50) * %d)
+%d = ((%d - %d) * %d)
 is not large enough to ensure 10 points outside of each error bar location
 for the given confidence interval. The minimum number of samples necessary is:
 %d = ceiling[ 10 / ((1.0 - %12.10f) / 2.0))
