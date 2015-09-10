@@ -12,6 +12,7 @@ import math
 import copy
 import emcee
 import os
+import matplotlib.pyplot as plt
 import numpy as np
 import ctypes as ct
 import corner as tplot
@@ -128,12 +129,12 @@ def initialize_mda():
                          start_params) for i in range(len(fit_data))]
     print "Data is interleaved"
     generate_output_dirs()
-    #mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
+    mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print ("Starting MDA process, working on up to %d energies simultaneously"
            % CONFIG["Number of Threads"])
-    #output = mp_pool.map(fit_and_mcmc, interleaved_data)
+    output = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    output = map(fit_and_mcmc, interleaved_data)
+    # output = map(fit_and_mcmc, interleaved_data)
 
 
 def fit_and_mcmc(data_tuple):
@@ -238,6 +239,7 @@ def perform_sample_manips(sampler, ndims, energy):
                                    "/A%d_corner_en_%4.1f.png" %\
                                    (CONFIG["Target A"], energy)
         fig.savefig(fig_file_name)
+        plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
     # return the point and the errors
     return points
@@ -267,6 +269,7 @@ def make_prob_plots(samples, energy):
                                    "/A%d_prob_en_%4.1f_a%02d.png" %\
                                    (CONFIG["Target A"], energy, i)
         fig.savefig(fig_file_name)
+        plt.close(fig)
 
 
 def ln_post_prob(params, cs_lib, struct, bounds):
