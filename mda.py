@@ -196,9 +196,12 @@ def fit_and_mcmc(data_tuple):
         np.savez_compressed(chain_file_name, sampler.chain)
         print "Done saving MCMC samples for", energy, "MeV"
     #make the probability plots
-    make_prob_plots(samples)
+    make_prob_plots(samples, energy)
     # extract the error bars
-    points = calc_param_values_percentiles(samples)
+    lo_ptile = (100.0*((1.0-CONFIG["Confidence Interval"])/2.0))
+    hi_ptile = (100.0 - lo_ptile)
+    points = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
+              zip(*np.percentile(samples, [lo_ptile, 50.0, hi_ptile], axis=0)))
     # make the corner plot
     if CONFIG["Generate Corner Plots"]:
         print "Commencing corner plot creation for", energy, "MeV"
@@ -206,24 +209,26 @@ def fit_and_mcmc(data_tuple):
         lbls = [r"$a_{%d}$" % i for i in range(ndims)]
         ranges = [(-0.001, (0.001 + 1.1*samples[:,i].max())) for i in
                   range(ndims)]
-        fit = None
+        fig = None
         if CONFIG["Corner Plot Samples"] >= num_samples:
             fig = tplot.corner(samples, labels=lbls, extents=ranges, 
-                               truths=true_vals)
+                               show_titles=True,
+                               quantiles=[lo_ptile, 50.0, hi_ptile])
         else:
             # randomize the sample array and then extract the first chunk of it
             np.random.shuffle(samples)
             temp_samples = samples[0:CONFIG["Corner Plot Samples"]]
             fig = tplot.corner(temp_samples, labels=lbls, extents=ranges, 
-                               truths=true_vals)
+                               show_titles=True,
+                               quantiles=[lo_ptile, 50.0, hi_ptile])
         # make the corner plot file_name
         if CONFIG["Corner Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Corner Plots Directory"] +\
-                                   "A%d_triangle_en_%4.1f.png" %\
+                                   "A%d_corner_en_%4.1f.png" %\
                                    (CONFIG["Target A"], energy)
         else:
             fig_file_name = CONFIG["Corner Plots Directory"] +\
-                                   "/A%d_triangle_en_%4.1f.png" %\
+                                   "/A%d_corner_en_%4.1f.png" %\
                                    (CONFIG["Target A"], energy)
         fig.savefig(fig_file_name)
         print "Done creating corner plot for", energy, "MeV"
@@ -233,22 +238,31 @@ def fit_and_mcmc(data_tuple):
     return points
 
 
-def calc_param_values_percentiles(samples):
-    """This function takes a list of MCMC samples and finds the 50th percentile
-    as the parameter value and the appropriate other percentiles values as the
-    errors of that parameter"""
-    lo_ptile = (100.0*((1.0-CONFIG["Confidence Interval"])/2.0))
-    hi_ptile = (100.0 - lo_ptile)
-    val = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
-              zip(*np.percentile(samples, [lo_ptile, 50.0, hi_ptile], axis=0)))
-    return val
-
-
-def make_prob_plots(samples):
+def make_prob_plots(samples, energy):
     """this function takes the list of samples and makes histograms of the
     probability distributions of the parameters using matplotlib and writes
     those histograms to the specified directory"""
-    pass
+    lbls = [r"$a_{%d}$" % i for i in range(len(samples[0]))]
+    ranges = [(-0.001, (0.001 + 1.1*samples[:,i].max())) for i in
+                  range(len(samples[0]))]
+    lo_ptile = (100.0*((1.0-CONFIG["Confidence Interval"])/2.0))
+    hi_ptile = (100.0 - lo_ptile)
+    for i in range(len(samples[0])):
+        temp = samples[:,i]
+        fig = tplot.corner(temp, labels=[lbls[i]], extents=[ranges[i]], 
+                               show_titles=True,
+                               quantiles=[lo_ptile, 50.0, hi_ptile])
+        # make the probability plot file_name
+        fig_file_name = None
+        if CONFIG["Prob Plots Directory"][-1] == '/':
+            fig_file_name = CONFIG["Prob Plots Directory"] +\
+                                   "A%d_prob_en_%4.1f_a%2d.png" %\
+                                   (CONFIG["Target A"], energy, i)
+        else:
+            fig_file_name = CONFIG["Prob Plots Directory"] +\
+                                   "/A%d_prob_en_%4.1f_a%2d.png" %\
+                                   (CONFIG["Target A"], energy, i)
+        fig.savefig(fig_file_name)
 
 
 def ln_post_prob(params, cs_lib, struct, bounds):
