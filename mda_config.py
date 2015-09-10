@@ -94,16 +94,16 @@ CONFIG["Number of Threads"] = 4  # complete
 # (max a_L = 1.0/(EWSR Fraction_L)
 # ... This continues for as many Ls as you have
 # for example: CONFIG["Start Pts a23"] = [0.5]
-CONFIG["Start Pts a0"] = [0.1, 0.5, 0.9]  # complete
-CONFIG["Start Pts a1"] = [0.1, 0.5, 0.9]  # complete
-CONFIG["Start Pts a2"] = [0.1, 0.5, 0.9]  # complete
-CONFIG["Start Pts a3"] = [0.1, 0.5, 0.9]  # complete
-CONFIG["Start Pts a4"] = [0.1, 0.5, 0.9]  # complete
-CONFIG["Start Pts a5"] = [0.2, 0.8]  # complete
-CONFIG["Start Pts a6"] = [0.2, 0.8]  # complete
-CONFIG["Start Pts a7"] = [0.2, 0.8]  # complete
+CONFIG["Start Pts a0"] = [0.0, 0.15, 0.3]  # complete
+CONFIG["Start Pts a1"] = [0.0, 0.15, 0.3]  # complete
+CONFIG["Start Pts a2"] = [0.0, 0.15, 0.3]  # complete
+CONFIG["Start Pts a3"] = [0.0, 0.15, 0.3]  # complete
+CONFIG["Start Pts a4"] = [0.0, 0.15, 0.3]  # complete
+CONFIG["Start Pts a5"] = [0.0, 0.3]  # complete
+CONFIG["Start Pts a6"] = [0.0, 0.3]  # complete
+CONFIG["Start Pts a7"] = [0.0, 0.3]  # complete
 # Number of refined points to use to generate initial positions for walkers
-CONFIG["Number Walker Generators"] = 50  # complete
+CONFIG["Number Walker Generators"] = 200  # complete
 # Spread of the initial sampling positions for walkers
 CONFIG["Sample Spread"] = 0.05  # complete
 # Number of points at the beginning of the Markov Chain to discard as 'burn in'
