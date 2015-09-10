@@ -14,7 +14,7 @@ import emcee
 import os
 import numpy as np
 import ctypes as ct
-import triangle as tplot
+import corner as tplot
 from scipy import interpolate
 from scipy import optimize
 
@@ -84,9 +84,8 @@ def main():
         num_cells *= size
     if num_cells < CONFIG["Number Walker Generators"]:
         out_str = """You must provide enough starting points such that there are at
-        least %d points (the number of start points is the length of
-        each start list multiplied together)""" %\
-            CONFIG["Number Walker Generators"]
+least %d points (the number of start points is the length of each start list
+multiplied together)""" % CONFIG["Number Walker Generators"]
         print out_str
         sys.exit()
     # check to make certain that num sampes is a multiple of min start points
@@ -130,7 +129,7 @@ def initialize_mda():
     print "Data is interleaved"
     generate_output_dirs()
     #mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
-    print ("Starting MDA process, working on up to %d energies simultaneously" 
+    print ("Starting MDA process, working on up to %d energies simultaneously"
            % CONFIG["Number of Threads"])
     #output = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
@@ -175,12 +174,23 @@ def fit_and_mcmc(data_tuple):
                                     ln_post_prob, args=(cs_lib, struct, bnds))
     # perform the MCMC
     sampler.run_mcmc(starts, CONFIG["Sample Points"])
+    print "Finished MCMC for", energy, "MeV"
+    # delete the struct
+    cs_lib.freeMdaStruct(struct)
+    # now do the rest, all of which involves calculating things from samples
+    ret_value = perform_sample_manips(sampler, ndims, energy)
+    return ret_value
+
+
+def perform_sample_manips(sampler, ndims, energy):
+    """this function takes the mcmc sampler, grabs the chains from it, and
+    generates plots and percentiles and most likely values from the sampled
+    points"""
     # retrieve the samples
     num_samples = (CONFIG["Number of Walkers"] * (CONFIG["Sample Points"] -\
                                                   CONFIG["Burn-in Points"]))
     samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
-                                                            num_samples, ndims))
-    print "Finished MCMC for", energy, "MeV"
+        num_samples, ndims))
     # save the samples to the disk in the sp
     if CONFIG["Save Chain Data"]:
         print "Saving MCMC samples for", energy, "MeV"
@@ -198,29 +208,26 @@ def fit_and_mcmc(data_tuple):
     #make the probability plots
     make_prob_plots(samples, energy)
     # extract the error bars
-    lo_ptile = (100.0*((1.0-CONFIG["Confidence Interval"])/2.0))
-    hi_ptile = (100.0 - lo_ptile)
-    points = map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
-              zip(*np.percentile(samples, [lo_ptile, 50.0, hi_ptile], axis=0)))
+    quantile_list = np.array([(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
+                              (0.5 + CONFIG["Confidence Interval"] / 2.0)])
+    points = [(v[1], v[2]-v[1], v[1]-v[0]) for v in
+              zip(*np.percentile(samples, (100.0*quantile_list), axis=0))]
     # make the corner plot
     if CONFIG["Generate Corner Plots"]:
         print "Commencing corner plot creation for", energy, "MeV"
-        true_vals = [ x[0] for x in points ]
         lbls = [r"$a_{%d}$" % i for i in range(ndims)]
-        ranges = [(-0.001, (0.001 + 1.1*samples[:,i].max())) for i in
+        ranges = [(-0.0001, (0.0001 + samples[:, i].max())) for i in
                   range(ndims)]
         fig = None
         if CONFIG["Corner Plot Samples"] >= num_samples:
-            fig = tplot.corner(samples, labels=lbls, extents=ranges, 
-                               show_titles=True,
-                               quantiles=[lo_ptile, 50.0, hi_ptile])
+            fig = tplot.corner(samples, labels=lbls, extents=ranges,
+                               quantiles=quantile_list, verbose=False)
         else:
             # randomize the sample array and then extract the first chunk of it
             np.random.shuffle(samples)
             temp_samples = samples[0:CONFIG["Corner Plot Samples"]]
-            fig = tplot.corner(temp_samples, labels=lbls, extents=ranges, 
-                               show_titles=True,
-                               quantiles=[lo_ptile, 50.0, hi_ptile])
+            fig = tplot.corner(temp_samples, labels=lbls, extents=ranges,
+                               quantiles=quantile_list, verbose=False)
         # make the corner plot file_name
         if CONFIG["Corner Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Corner Plots Directory"] +\
@@ -232,8 +239,6 @@ def fit_and_mcmc(data_tuple):
                                    (CONFIG["Target A"], energy)
         fig.savefig(fig_file_name)
         print "Done creating corner plot for", energy, "MeV"
-    # delete the struct
-    cs_lib.freeMdaStruct(struct)
     # return the point and the errors
     return points
 
@@ -242,25 +247,24 @@ def make_prob_plots(samples, energy):
     """this function takes the list of samples and makes histograms of the
     probability distributions of the parameters using matplotlib and writes
     those histograms to the specified directory"""
-    lbls = [r"$a_{%d}$" % i for i in range(len(samples[0]))]
-    ranges = [(-0.001, (0.001 + 1.1*samples[:,i].max())) for i in
-                  range(len(samples[0]))]
-    lo_ptile = (100.0*((1.0-CONFIG["Confidence Interval"])/2.0))
-    hi_ptile = (100.0 - lo_ptile)
-    for i in range(len(samples[0])):
-        temp = samples[:,i]
-        fig = tplot.corner(temp, labels=[lbls[i]], extents=[ranges[i]], 
-                               show_titles=True,
-                               quantiles=[lo_ptile, 50.0, hi_ptile])
+    ndims = len(samples[0])
+    lbls = [r"$a_{%d}$" % i for i in range(ndims)]
+    ranges = [(-0.0001, (0.0001 + samples[:, i].max())) for i in range(ndims)]
+    quantile_list = np.array([(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
+                              (0.5 + CONFIG["Confidence Interval"] / 2.0)])
+    for i in range(ndims):
+        temp = samples[:, i]
+        fig = tplot.corner(temp, labels=[lbls[i]], extents=[ranges[i]],
+                           quantiles=quantile_list, verbose=False)
         # make the probability plot file_name
         fig_file_name = None
         if CONFIG["Prob Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Prob Plots Directory"] +\
-                                   "A%d_prob_en_%4.1f_a%2d.png" %\
+                                   "A%d_prob_en_%4.1f_a%02d.png" %\
                                    (CONFIG["Target A"], energy, i)
         else:
             fig_file_name = CONFIG["Prob Plots Directory"] +\
-                                   "/A%d_prob_en_%4.1f_a%2d.png" %\
+                                   "/A%d_prob_en_%4.1f_a%02d.png" %\
                                    (CONFIG["Target A"], energy, i)
         fig.savefig(fig_file_name)
 
