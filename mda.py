@@ -241,8 +241,16 @@ def perform_sample_manips(sampler, ndims, energy):
         fig.savefig(fig_file_name)
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
+    peaks = find_most_likely_value(samples, ndims)
     # return the point and the errors
-    return points
+    return (points, peaks)
+
+
+def find_most_likely_values(samples, ndims):
+    """This function finds values by finding the peak value in the probability
+    distribution, it also extracts errors by trying to encompass half the
+    selected confidence interval on each size"""
+    pass
 
 
 def make_prob_plots(samples, energy):
