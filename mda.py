@@ -44,6 +44,7 @@ sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 # TODO: implement fit csv writer
 # TODO: implement parameter writer
 
+
 def main():
     """gets the configuration file to import, imports it and then performs
     sanity checks on the configuration data and then calls the functions that
@@ -230,7 +231,7 @@ def perform_sample_manips(sampler, ndims, energy):
     generates plots and percentiles and most likely values from the sampled
     points"""
     # retrieve the samples
-    num_samples = (CONFIG["Number of Walkers"] * (CONFIG["Sample Points"] -\
+    num_samples = (CONFIG["Number of Walkers"] * (CONFIG["Sample Points"] -
                                                   CONFIG["Burn-in Points"]))
     samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
         num_samples, ndims))
@@ -240,15 +241,13 @@ def perform_sample_manips(sampler, ndims, energy):
         chain_file_name = ""
         if CONFIG["Chain Directory"][-1] == '/':
             chain_file_name = CONFIG["Chain Directory"] +\
-                                  "A%d_chain_en_%4.1f.png" %\
-                                  (CONFIG["Target A"], energy)
+                "A%d_chain_en_%4.1f.png" % (CONFIG["Target A"], energy)
         else:
             chain_file_name = CONFIG["Chain Directory"] +\
-                                  "/A%d_chain_en_%4.1f.png" %\
-                                  (CONFIG["Target A"], energy)
+                "/A%d_chain_en_%4.1f.png" % (CONFIG["Target A"], energy)
         np.savez_compressed(chain_file_name, sampler.chain)
         print "Done saving MCMC samples for", energy, "MeV"
-    #make the probability plots
+    # make the probability plots
     make_prob_plots(samples, energy)
     # extract the error bars
     quantile_list = np.array([(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
@@ -272,12 +271,10 @@ def perform_sample_manips(sampler, ndims, energy):
         # make the corner plot file_name
         if CONFIG["Corner Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Corner Plots Directory"] +\
-                                   "A%d_corner_en_%4.1f.png" %\
-                                   (CONFIG["Target A"], energy)
+                "A%d_corner_en_%4.1f.png" % (CONFIG["Target A"], energy)
         else:
             fig_file_name = CONFIG["Corner Plots Directory"] +\
-                                   "/A%d_corner_en_%4.1f.png" %\
-                                   (CONFIG["Target A"], energy)
+                "/A%d_corner_en_%4.1f.png" % (CONFIG["Target A"], energy)
         fig.savefig(fig_file_name)
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
@@ -318,12 +315,11 @@ def make_prob_plots(samples, energy):
         fig_file_name = None
         if CONFIG["Prob Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Prob Plots Directory"] +\
-                                   "A%d_prob_en_%4.1f_a%02d.png" %\
-                                   (CONFIG["Target A"], energy, i)
+                "A%d_prob_en_%4.1f_a%02d.png" % (CONFIG["Target A"], energy, i)
         else:
             fig_file_name = CONFIG["Prob Plots Directory"] +\
-                                   "/A%d_prob_en_%4.1f_a%02d.png" %\
-                                   (CONFIG["Target A"], energy, i)
+                "/A%d_prob_en_%4.1f_a%02d.png" % (CONFIG["Target A"], energy,
+                                                  i)
         fig.savefig(fig_file_name)
         plt.close(fig)
 
