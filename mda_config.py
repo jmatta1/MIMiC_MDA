@@ -42,6 +42,12 @@ CONFIG["Generate Corner Plots"] = True
 # wish to generate the corner plot without the memory penalty you can set this
 # to use a random selection of however many samples out of the total
 CONFIG["Corner Plot Samples"] = 1000000
+# sets whether or not the user wants to plot the IVGDR in the fit plots
+# if it is true the unsubtracted data is the exp data that is plotted
+# if false the subtracted data is ploted
+CONFIG["Plot IVGDR in Fits"] = True
+# sets the max L the user wants to plot in the limited fit plot
+CONFIG["Max L For Lim Fit Plot"] = 3
 # Toggle the output of sample chains, if you disable the output of Corner plots
 # this needs to be on if you later want to make the corner plots in the
 # seperate script if you want to analyze the samples in other ways
