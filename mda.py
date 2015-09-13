@@ -114,7 +114,8 @@ def initialize_mda():
                                      CONFIG["Start Energy"],
                                      CONFIG["Final Energy"])
     # now read and subtract the IVGDR data
-    ivgdr_dists, ivgdr_ewsr, sub_data = handle_ivgdr(exp_data)
+    ivgdr_info = handle_ivgdr(exp_data)
+    sub_data = ivgdr_info[2]
     # print ivgdr_dists[0], '\n', ivgdr_ewsr[0], '\n', sub_data[0]
     # now read the distributions that are used to fit the data
     dists = [[read_dist(elem[0], i) for i in range(CONFIG["Maximum L"] + 1)]
@@ -124,7 +125,7 @@ def initialize_mda():
     interp_dists = interp_all_dists(dists, exp_data)
     print "Distributions interpolated and prepared for fitting"
     # now get the data divided by errors without angle values
-    fit_data = [(exp_en[1][:, 1]/exp_en[1][:, 2]) for exp_en in exp_data]
+    fit_data = [(exp_en[1][:, 1]/exp_en[1][:, 2]) for exp_en in sub_data]
     print "Experimental data prepared for fitting"
     # calculate the starting parameter sets for initial searches
     start_params = calc_start_params()
@@ -142,12 +143,10 @@ def initialize_mda():
     # output = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     print "Writing fit files"
-    data = (exp_data, sub_data)
-    ivgdr_info = (ivgdr_dists, ivgdr_ewsr)
-    write_fits(data, dists, parameters, ivgdr_info))
+    write_fits(exp_data, dists, parameters, ivgdr_info)
     # make the fit plots
     print "Writing fit plots"
-    make_fit_plots(data, dists, parameters, ivgdr_info)
+    make_fit_plots(exp_data, dists, parameters, ivgdr_info)
     # write the two parameter sets
     print "Writing parameter sets"
     write_param_sets(parameters)
@@ -168,13 +167,13 @@ def write_param_sets(parameters):
     pass
 
 
-def make_fit_plots(data, dists, parameters, ivgdr_dists, ivgdr_ewsr):
+def make_fit_plots(data, dists, parameters, ivgdr_info):
     """This function takes everything and generates the plots for individual
     fits at each energy"""
     pass
 
 
-def write_fits(data, dists, parameters, ivgdr_dists, ivgdr_ewsr):
+def write_fits(data, dists, parameters, ivgdr_info):
     """This function takes the parameters, distributions, and data, and writes
     them to a nicely formatted csv file for usage later"""
     pass
@@ -254,8 +253,6 @@ def perform_sample_manips(sampler, ndims, energy):
     # extract the error bars
     quantile_list = np.array([(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
                               (0.5 + CONFIG["Confidence Interval"] / 2.0)])
-    points = [(v[1], v[2]-v[1], v[1]-v[0]) for v in
-              zip(*np.percentile(samples, (100.0*quantile_list), axis=0))]
     # make the corner plot
     if CONFIG["Generate Corner Plots"]:
         print "Commencing corner plot creation for", energy, "MeV"
@@ -284,8 +281,16 @@ def perform_sample_manips(sampler, ndims, energy):
         fig.savefig(fig_file_name)
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
-    peaks = find_most_likely_value(samples, ndims)
     # return the point and the errors
+    return calc_param_values(samples, quantile_list, ndims)
+
+
+def calc_param_values(samples, quantile_list, ndims):
+    """This function calculates the parameter values and error bars using both
+    peak finding and percentiles"""
+    points = [(v[1], v[2]-v[1], v[1]-v[0]) for v in
+              zip(*np.percentile(samples, (100.0*quantile_list), axis=0))]
+    peaks = find_most_likely_values(samples, ndims)
     return (points, peaks)
 
 
@@ -293,7 +298,7 @@ def find_most_likely_values(samples, ndims):
     """This function finds values by finding the peak value in the probability
     distribution, it also extracts errors by trying to encompass half the
     selected confidence interval on each size"""
-    pass
+    return 7
 
 
 def make_prob_plots(samples, energy):
