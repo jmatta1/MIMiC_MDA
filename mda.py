@@ -38,6 +38,11 @@ CONFIG = __import__(CF_FILE_NAME).CONFIG
 # restore the dont_write_bytecode variable to its original value
 sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 
+# TODO: peak find based parameters
+# TODO: implement fit plot function
+# TODO: implement parameter plot function
+# TODO: implement fit csv writer
+# TODO: implement parameter writer
 
 def main():
     """gets the configuration file to import, imports it and then performs
@@ -132,9 +137,47 @@ def initialize_mda():
     mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print ("Starting MDA process, working on up to %d energies simultaneously"
            % CONFIG["Number of Threads"])
-    output = mp_pool.map(fit_and_mcmc, interleaved_data)
+    parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
     # output = map(fit_and_mcmc, interleaved_data)
+    # write the individual fits to csv files
+    print "Writing fit files"
+    data = (exp_data, sub_data)
+    ivgdr_info = (ivgdr_dists, ivgdr_ewsr)
+    write_fits(data, dists, parameters, ivgdr_info))
+    # make the fit plots
+    print "Writing fit plots"
+    make_fit_plots(data, dists, parameters, ivgdr_info)
+    # write the two parameter sets
+    print "Writing parameter sets"
+    write_param_sets(parameters)
+    # write the parameter plots
+    print "Writing parameter plots"
+    write_param_plots(parameters)
+
+
+def write_param_plots(parameters):
+    """This function takes the generated parameters and makes the plots for
+    each L of the parameters"""
+    pass
+
+
+def write_param_sets(parameters):
+    """This function takes the generated parameters and writes the sets from
+    percentiles and the sets from peak find to seperate files"""
+    pass
+
+
+def make_fit_plots(data, dists, parameters, ivgdr_dists, ivgdr_ewsr):
+    """This function takes everything and generates the plots for individual
+    fits at each energy"""
+    pass
+
+
+def write_fits(data, dists, parameters, ivgdr_dists, ivgdr_ewsr):
+    """This function takes the parameters, distributions, and data, and writes
+    them to a nicely formatted csv file for usage later"""
+    pass
 
 
 def fit_and_mcmc(data_tuple):
