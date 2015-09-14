@@ -154,6 +154,7 @@ def initialize_mda():
     # write the parameter plots
     print "Writing parameter plots"
     write_param_plots(parameters)
+    print "MDA and output complete"
 
 
 def write_param_plots(parameters):
@@ -171,8 +172,17 @@ def write_param_sets(parameters):
 def make_fit_plots(data, dists, parameters, ivgdr_info):
     """This function takes everything and generates the plots for individual
     fits at each energy"""
-    pass
-
+    for i in range(len(data)):
+        energy = data[i][0]
+        dist_set = dists[i]
+        param_set = parameters[i]
+        if CONFIG["Subtract IVGDR"]:
+            if CONFIG["Plot IVGDR in Fits"]:
+                exp_points = data[i][0]
+            else:
+                exp_points = ivgdr_info[2][i]
+        else:
+            exp_points = data[i][0]
 
 def write_fits(data, dists, parameters, ivgdr_info):
     """This function takes the parameters, distributions, and data, and writes
