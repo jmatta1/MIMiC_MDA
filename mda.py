@@ -184,6 +184,14 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
         else:
             exp_points = data[i][0]
 
+
+def get_fit_plot(points, dists):
+    """This function takes the list of points with errors in the points var
+    and the list of distributions to plot in the dists var and generates a
+    nicely formatted matplotlib plot displaying them"""
+    pass
+
+
 def write_fits(data, dists, parameters, ivgdr_info):
     """This function takes the parameters, distributions, and data, and writes
     them to a nicely formatted csv file for usage later"""
