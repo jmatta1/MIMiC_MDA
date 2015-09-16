@@ -185,7 +185,7 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
             exp_points = data[i][0]
 
 
-def get_fit_plot(points, dists):
+def get_fit_plot(points, dists, name):
     """This function takes the list of points with errors in the points var
     and the list of distributions to plot in the dists var and generates a
     nicely formatted matplotlib plot displaying them"""
@@ -426,9 +426,21 @@ def generate_output_dirs():
     # test / create the directory for probability plots
     if not os.path.exists(CONFIG["Prob Plots Directory"]):
         os.makedirs(CONFIG["Prob Plots Directory"])
-    # test / create the directory for fit plots
-    if not os.path.exists(CONFIG["Fit Plots Directory"]):
-        os.makedirs(CONFIG["Fit Plots Directory"])
+    # test / create the directories for fit plots
+    temp_fit_dir = CONFIG["Fit Plots Directory"]
+    if temp_fit_dir[-1] == '/':
+        temp_fit_dir += "params_from_peaks"
+    else:
+        temp_fit_dir += "/params_from_peaks"
+    if not os.path.exists(temp_fit_dir):
+        os.makedirs(temp_fit_dir)
+    temp_fit_dir = CONFIG["Fit Plots Directory"]
+    if temp_fit_dir[-1] == '/':
+        temp_fit_dir += "params_from_percentiles"
+    else:
+        temp_fit_dir += "/params_from_percentiles"
+    if not os.path.exists(temp_fit_dir):
+        os.makedirs(temp_fit_dir)
     # test / create the directory for Markov Chains
     if not os.path.exists(CONFIG["Chain Directory"]):
         os.makedirs(CONFIG["Chain Directory"])
