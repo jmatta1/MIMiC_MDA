@@ -313,7 +313,7 @@ def find_most_likely_values(samples, ndims):
     """This function finds values by finding the peak value in the probability
     distribution, it also extracts errors by trying to encompass half the
     selected confidence interval on each size"""
-    return 7
+    return [(0.7, 0.2, 0.2)]*ndims
 
 
 def make_prob_plots(samples, energy):
