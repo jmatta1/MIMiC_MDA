@@ -39,7 +39,6 @@ CONFIG = __import__(CF_FILE_NAME).CONFIG
 sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 
 # TODO: peak find based parameters
-# TODO: implement fit plot function
 # TODO: implement parameter plot function
 # TODO: implement fit csv writer
 # TODO: implement parameter writer
@@ -103,7 +102,7 @@ multiplied together)""" % CONFIG["Number Walker Generators"]
         sys.exit()
     # check to make certain that the given file format is one of the
     # supported formats
-    if not (CONFIG["Plot Format"] in PLOT_FORMAT_LIST):
+    if not CONFIG["Plot Format"] in PLOT_FORMAT_LIST:
         print "\nThe chosen plot output format is not supported."
         print "The supported values for this option are:"
         print PLOT_FORMAT_LIST, "\n"
@@ -192,7 +191,7 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
     param_type_list = ["loerr", "fit", "hierr"]
     legend_names = ["fit"]
     for i in range(len(parameters[0][0])):
-        legend_names.append(r"$l_{%d}$" % i )
+        legend_names.append(r"$l_{%d}$" % i)
     # loop through each set of data and distributions
     for i in range(len(data)):
         # extract the things pertinet to this set from the arguments
@@ -217,10 +216,10 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
                 scaled_dists = gen_fit_dists(pset[k], dist_set)
                 for j in range(2):  # full or limitted
                     max_ind = len(scaled_dists)
-                    if j==1:
+                    if j == 1:
                         max_ind = (CONFIG["Max L For Lim Fit Plot"] + 2)
                     elif CONFIG["Subtract IVGDR"] and\
-                                               not CONFIG["Plot IVGDR in Fits"]:        
+                                               not CONFIG["Plot IVGDR in Fits"]:
                         max_ind -= 1
                     plot_file_name = plot_name % (fit_dirs[i],
                                                   plot_type_list[j],
@@ -239,13 +238,13 @@ def gen_fit_dists(params, dists):
     # first scale all the passed distributions
     scaled_dists = copy.deepcopy(dists)
     for (param, dist) in zip(params, scaled_dists):
-        dist[:,1] = param*dist[:,1]
+        dist[:, 1] = param*dist[:, 1]
     # make the fit distribution and initiailize it
     fit_distribution = []
     for i in range(len(scaled_dists[0])):
         fit_distribution.append([scaled_dists[0][i][0], scaled_dists[0][i][1]])
     # add the other components of the fit distribution
-    for j in range(1,len(scaled_dists)):
+    for j in range(1, len(scaled_dists)):
         for i in range(len(scaled_dists[j])):
             fit_distribution[i][1] += scaled_dists[j][i][1]
     output = [np.array(fit_distribution)]
@@ -262,20 +261,22 @@ def gen_fit_plot(points, dists, legends, plot_name):
     # always be a solid red line, no other distribution is red and solid
     line_styles = ["r-", "b--", "g-.", "c:", "m--", "y-.", "b:", "g--", "c-.",
                    "m:", "y--", "b-.", "g:", "c--", "m-.", "y:"]
-    pt_x_vals = points[:,0]
-    pt_y_vals = points[:,1]
-    pt_e_vals = points[:,2]
-    fig, ax = plt.subplots()
-    ax.set_yscale('log', subsy=[2,3,4,5,6,7,8,9])
-    ax.set_xscale('linear')
+    pt_x_vals = points[:, 0]
+    pt_y_vals = points[:, 1]
+    pt_e_vals = points[:, 2]
+    fig, axes = plt.subplots()
+    axes.set_yscale('log', subsy=[2, 3, 4, 5, 6, 7, 8, 9])
+    axes.set_xscale('linear')
     # plot the points
-    ax.errorbar(pt_x_vals, pt_y_vals, yerr=pt_e_vals, fmt="bo", label="Exp. Data")
+    axes.errorbar(pt_x_vals, pt_y_vals, yerr=pt_e_vals, fmt="bo",
+                  label="Exp. Data")
     # plot the distributions
     for i in range(len(dists)):
-        ax.plot(dists[i][:,0], dists[i][:,1], line_styles[i%len(line_styles)],
-                label=legends[i])
-    ax.set_xlim(0.0, math.ceil(pt_x_vals.max()))
-    legend = ax.legend(loc='lower left', ncol=3)
+        axes.plot(dists[i][:, 0], dists[i][:, 1],
+                  line_styles[i % len(line_styles)], label=legends[i])
+    axes.set_xlim(0.0, math.ceil(pt_x_vals.max()))
+    legend = axes.legend(loc='lower left', ncol=3)
+    legend.get_frame.set_facecolor("cornflowerblue")
     fig.savefig(plot_name)
     plt.close(fig)
 
@@ -348,11 +349,11 @@ def perform_sample_manips(sampler, ndims, energy):
         if CONFIG["Chain Directory"][-1] == '/':
             chain_file_name = CONFIG["Chain Directory"] +\
                 "A%d_chain_E%4.1f.%s" % (CONFIG["Target A"], energy,
-                                           CONFIG["Plot Format"])
+                                         CONFIG["Plot Format"])
         else:
             chain_file_name = CONFIG["Chain Directory"] +\
                 "/A%d_chain_E%4.1f.%s" % (CONFIG["Target A"], energy,
-                                            CONFIG["Plot Format"])
+                                          CONFIG["Plot Format"])
         np.savez_compressed(chain_file_name, sampler.chain)
         print "Done saving MCMC samples for", energy, "MeV"
     # make the probability plots
@@ -380,11 +381,11 @@ def perform_sample_manips(sampler, ndims, energy):
         if CONFIG["Corner Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Corner Plots Directory"] +\
                 "A%d_corner_E%4.1f.%s" % (CONFIG["Target A"], energy,
-                                            CONFIG["Plot Format"])
+                                          CONFIG["Plot Format"])
         else:
             fig_file_name = CONFIG["Corner Plots Directory"] +\
                 "/A%d_corner_E%4.1f.%s" % (CONFIG["Target A"], energy,
-                                             CONFIG["Plot Format"])
+                                           CONFIG["Plot Format"])
         fig.savefig(fig_file_name)
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
@@ -430,7 +431,7 @@ def make_prob_plots(samples, energy):
         else:
             fig_file_name = CONFIG["Prob Plots Directory"] +\
                 "/A%d_prob_en_%4.1f_a%02d.%s" % (CONFIG["Target A"], energy,
-                                                  i, CONFIG["Plot Format"])
+                                                 i, CONFIG["Plot Format"])
         fig.savefig(fig_file_name)
         plt.close(fig)
 
