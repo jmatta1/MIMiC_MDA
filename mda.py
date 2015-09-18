@@ -45,6 +45,7 @@ sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 
 PLOT_FORMAT_LIST = ["svg", "svgz", "pdf", "ps", "eps", "png"]
 
+
 def main():
     """performs sanity checks on the configuration data and then calls the
     functions that do the work"""
@@ -142,12 +143,12 @@ def initialize_mda():
                          start_params) for i in range(len(fit_data))]
     print "Data is interleaved"
     generate_output_dirs()
-    #mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
+    mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print ("Starting MDA process, working on up to %d energies simultaneously"
            % CONFIG["Number of Threads"])
-    #parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
+    parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    parameters = map(fit_and_mcmc, interleaved_data)
+    # parameters = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     print "Writing fit files"
     write_fits(exp_data, dists, parameters, ivgdr_info)
@@ -218,8 +219,8 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
                     max_ind = len(scaled_dists)
                     if j == 1:
                         max_ind = (CONFIG["Max L For Lim Fit Plot"] + 2)
-                    elif CONFIG["Subtract IVGDR"] and\
-                                               not CONFIG["Plot IVGDR in Fits"]:
+                    elif (CONFIG["Subtract IVGDR"] and
+                          not CONFIG["Plot IVGDR in Fits"]):
                         max_ind -= 1
                     plot_file_name = plot_name % (fit_dirs[i],
                                                   plot_type_list[j],
