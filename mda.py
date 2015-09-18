@@ -44,11 +44,11 @@ sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 # TODO: implement fit csv writer
 # TODO: implement parameter writer
 
+PLOT_FORMAT_LIST = ["svg", "svgz", "pdf", "ps", "eps", "png"]
 
 def main():
-    """gets the configuration file to import, imports it and then performs
-    sanity checks on the configuration data and then calls the functions that
-    do the work"""
+    """performs sanity checks on the configuration data and then calls the
+    functions that do the work"""
     # check that the user gave sane information
     # check that they are not requesting greater concurrency than the
     # system supports
@@ -80,7 +80,7 @@ def main():
         sys.exit()
     elif num_ewsr < num_dists:
         print "\nToo few EWSR fractions listed, there must be",\
-            "(1 + CONFIGURATION[\"Maximum L\"]) = %d\n" % num_dists,\
+            "(1 + CONFIGURATION[\"Maximum L\"]) =pn %d\n" % num_dists,\
             "EWSR fractions listed in the variable",\
             "CONFIGURATION[\"EWSR Fractions\"], %d were given\n" % num_ewsr
         sys.exit()
@@ -90,16 +90,23 @@ def main():
     for size in len_array:
         num_cells *= size
     if num_cells < CONFIG["Number Walker Generators"]:
-        out_str = """You must provide enough starting points such that there are at
+        out_str = """\nYou must provide enough starting points such that there are at
 least %d points (the number of start points is the length of each start list
 multiplied together)""" % CONFIG["Number Walker Generators"]
         print out_str
         sys.exit()
     # check to make certain that num sampes is a multiple of min start points
     if (num_samples % CONFIG["Number Walker Generators"]) != 0:
-        print 'The product ((CONFIG["Sample Points"]-CONFIG["Burn-in Points"])'\
+        print '\nThe product ((CONFIG["Sample Points"]-CONFIG["Burn-in Points"])'\
             '*CONFIG["Number of Walkers"])\n must be a multiple of %d' %\
             CONFIG["Number Walker Generators"]
+        sys.exit()
+    # check to make certain that the given file format is one of the
+    # supported formats
+    if not (CONFIG["Plot Format"] in PLOT_FORMAT_LIST):
+        print "\nThe chosen plot output format is not supported."
+        print "The supported values for this option are:"
+        print PLOT_FORMAT_LIST, "\n"
         sys.exit()
     # call the function that calls everything else
     initialize_mda()
@@ -136,12 +143,12 @@ def initialize_mda():
                          start_params) for i in range(len(fit_data))]
     print "Data is interleaved"
     generate_output_dirs()
-    mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
+    #mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print ("Starting MDA process, working on up to %d energies simultaneously"
            % CONFIG["Number of Threads"])
-    parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
+    #parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    # output = map(fit_and_mcmc, interleaved_data)
+    parameters = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     print "Writing fit files"
     write_fits(exp_data, dists, parameters, ivgdr_info)
@@ -154,6 +161,7 @@ def initialize_mda():
     # write the parameter plots
     print "Writing parameter plots"
     write_param_plots(parameters)
+    # and now we are completely done
     print "MDA and output complete"
 
 
@@ -172,24 +180,104 @@ def write_param_sets(parameters):
 def make_fit_plots(data, dists, parameters, ivgdr_info):
     """This function takes everything and generates the plots for individual
     fits at each energy"""
+    # first make the directory names
+    fit_dirs = [CONFIG["Fit Plots Directory"], CONFIG["Fit Plots Directory"]]
+    if fit_dirs[0][-1] == '/':
+        fit_dirs[0] += "params_from_percentiles"
+        fit_dirs[1] += "params_from_peaks"
+    else:
+        fit_dirs[0] += "/params_from_percentiles"
+        fit_dirs[1] += "/params_from_peaks"
+    plot_type_list = ["full", "lim"]
+    param_type_list = ["loerr", "fit", "hierr"]
+    legend_names = ["fit"]
+    for i in range(len(parameters[0][0])):
+        legend_names.append(r"$l_{%d}$" % i )
+    # loop through each set of data and distributions
     for i in range(len(data)):
+        # extract the things pertinet to this set from the arguments
         energy = data[i][0]
-        dist_set = dists[i]
-        param_set = parameters[i]
+        dist_set = copy.deepcopy(dists[i])
+        param_set = list(copy.deepcopy(parameters[i]))
+        exp_points = data[i][1]
+        # generate the plot names
+        # directory/full\lim_loerr\fit\hierr_A##_E##.ext
+        plot_name = "%s/%s_%s_A%d_E%4.1f.%s"
         if CONFIG["Subtract IVGDR"]:
-            if CONFIG["Plot IVGDR in Fits"]:
-                exp_points = data[i][0]
-            else:
-                exp_points = ivgdr_info[2][i]
-        else:
-            exp_points = data[i][0]
+            dist_set.append(ivgdr_info[0][i])
+            param_set.append((ivgdr_info[1][i], 0.0, 0.0))
+            legend_names.append(r"$l_{-1}$")
+        # loop through the plots to generate
+        for i in range(2):  # peaks or percentiles?
+            # choose our parameter set and generate the three sets of fits
+            pset = [[(vals[0] - vals[1]) for vals in param_set[i]],
+                    [vals[0] for vals in param_set[i]],
+                    [(vals[0] + vals[2]) for vals in param_set[i]]]
+            for k in range(3):  # params-lo_errs, params, params+hi_errs
+                scaled_dists = gen_fit_dists(pset[k], dist_set)
+                for j in range(2):  # full or limitted
+                    max_ind = len(scaled_dists)
+                    if j==1:
+                        max_ind = (CONFIG["Max L For Lim Fit Plot"] + 2)
+                    elif CONFIG["Subtract IVGDR"] and\
+                                               not CONFIG["Plot IVGDR in Fits"]:        
+                        max_ind -= 1
+                    plot_file_name = plot_name % (fit_dirs[i],
+                                                  plot_type_list[j],
+                                                  param_type_list[k],
+                                                  CONFIG["Target A"],
+                                                  energy,
+                                                  CONFIG["Plot Format"])
+                    gen_fit_plot(exp_points, scaled_dists[:max_ind],
+                                 legend_names[:max_ind], plot_file_name)
 
 
-def get_fit_plot(points, dists, name):
+def gen_fit_dists(params, dists):
+    """This function, takes a parameter set and a set of distributions, it then
+    scales the distributions by the appropriate parameters and returns the
+    scaled distributions"""
+    # first scale all the passed distributions
+    scaled_dists = copy.deepcopy(dists)
+    for (param, dist) in zip(params, scaled_dists):
+        dist[:,1] = param*dist[:,1]
+    # make the fit distribution and initiailize it
+    fit_distribution = []
+    for i in range(len(scaled_dists[0])):
+        fit_distribution.append([scaled_dists[0][i][0], scaled_dists[0][i][1]])
+    # add the other components of the fit distribution
+    for j in range(1,len(scaled_dists)):
+        for i in range(len(scaled_dists[j])):
+            fit_distribution[i][1] += scaled_dists[j][i][1]
+    output = [np.array(fit_distribution)]
+    for dist in scaled_dists:
+        output.append(dist)
+    return output
+
+
+def gen_fit_plot(points, dists, legends, plot_name):
     """This function takes the list of points with errors in the points var
     and the list of distributions to plot in the dists var and generates a
     nicely formatted matplotlib plot displaying them"""
-    pass
+    # since the first distribution is always the plot then the first style will
+    # always be a solid red line, no other distribution is red and solid
+    line_styles = ["r-", "b--", "g-.", "c:", "m--", "y-.", "b:", "g--", "c-.",
+                   "m:", "y--", "b-.", "g:", "c--", "m-.", "y:"]
+    pt_x_vals = points[:,0]
+    pt_y_vals = points[:,1]
+    pt_e_vals = points[:,2]
+    fig, ax = plt.subplots()
+    ax.set_yscale('log', subsy=[2,3,4,5,6,7,8,9])
+    ax.set_xscale('linear')
+    # plot the points
+    ax.errorbar(pt_x_vals, pt_y_vals, yerr=pt_e_vals, fmt="bo", label="Exp. Data")
+    # plot the distributions
+    for i in range(len(dists)):
+        ax.plot(dists[i][:,0], dists[i][:,1], line_styles[i%len(line_styles)],
+                label=legends[i])
+    ax.set_xlim(0.0, math.ceil(pt_x_vals.max()))
+    legend = ax.legend(loc='lower left', ncol=3)
+    fig.savefig(plot_name)
+    plt.close(fig)
 
 
 def write_fits(data, dists, parameters, ivgdr_info):
@@ -259,10 +347,12 @@ def perform_sample_manips(sampler, ndims, energy):
         chain_file_name = ""
         if CONFIG["Chain Directory"][-1] == '/':
             chain_file_name = CONFIG["Chain Directory"] +\
-                "A%d_chain_en_%4.1f.png" % (CONFIG["Target A"], energy)
+                "A%d_chain_E%4.1f.%s" % (CONFIG["Target A"], energy,
+                                           CONFIG["Plot Format"])
         else:
             chain_file_name = CONFIG["Chain Directory"] +\
-                "/A%d_chain_en_%4.1f.png" % (CONFIG["Target A"], energy)
+                "/A%d_chain_E%4.1f.%s" % (CONFIG["Target A"], energy,
+                                            CONFIG["Plot Format"])
         np.savez_compressed(chain_file_name, sampler.chain)
         print "Done saving MCMC samples for", energy, "MeV"
     # make the probability plots
@@ -289,10 +379,12 @@ def perform_sample_manips(sampler, ndims, energy):
         # make the corner plot file_name
         if CONFIG["Corner Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Corner Plots Directory"] +\
-                "A%d_corner_en_%4.1f.png" % (CONFIG["Target A"], energy)
+                "A%d_corner_E%4.1f.%s" % (CONFIG["Target A"], energy,
+                                            CONFIG["Plot Format"])
         else:
             fig_file_name = CONFIG["Corner Plots Directory"] +\
-                "/A%d_corner_en_%4.1f.png" % (CONFIG["Target A"], energy)
+                "/A%d_corner_E%4.1f.%s" % (CONFIG["Target A"], energy,
+                                             CONFIG["Plot Format"])
         fig.savefig(fig_file_name)
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
@@ -333,11 +425,12 @@ def make_prob_plots(samples, energy):
         fig_file_name = None
         if CONFIG["Prob Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Prob Plots Directory"] +\
-                "A%d_prob_en_%4.1f_a%02d.png" % (CONFIG["Target A"], energy, i)
+                "A%d_prob_en_%4.1f_a%02d.%s" % (CONFIG["Target A"], energy, i,
+                                                CONFIG["Plot Format"])
         else:
             fig_file_name = CONFIG["Prob Plots Directory"] +\
-                "/A%d_prob_en_%4.1f_a%02d.png" % (CONFIG["Target A"], energy,
-                                                  i)
+                "/A%d_prob_en_%4.1f_a%02d.%s" % (CONFIG["Target A"], energy,
+                                                  i, CONFIG["Plot Format"])
         fig.savefig(fig_file_name)
         plt.close(fig)
 
