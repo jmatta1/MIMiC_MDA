@@ -246,28 +246,6 @@ def gen_param_sets_for_fit_plot(params):
     return temp
 
 
-def gen_fit_dists(params, dists):
-    """This function, takes a parameter set and a set of distributions, it then
-    scales the distributions by the appropriate parameters and returns the
-    scaled distributions"""
-    # first scale all the passed distributions
-    sc_dists = copy.deepcopy(dists)
-    for (param, dist) in zip(params, sc_dists):
-        dist[:, 1] = param*dist[:, 1]
-    # make the fit distribution and initiailize it
-    fit_distribution = []
-    for i in range(len(sc_dists[0])):
-        fit_distribution.append([sc_dists[0][i][0], sc_dists[0][i][1]])
-    # add the other components of the fit distribution
-    for j in range(1, len(sc_dists)):
-        for i in range(len(sc_dists[j])):
-            fit_distribution[i][1] += sc_dists[j][i][1]
-    output = [np.array(fit_distribution)]
-    for dist in sc_dists:
-        output.append(dist)
-    return output
-
-
 def gen_fit_plot(points, dists, legends, plot_name):
     """This function takes the list of points with errors in the points var
     and the list of distributions to plot in the dists var and generates a
@@ -322,7 +300,31 @@ def find_y_extrema(data_max, dists, xmax):
 def write_fits(data, dists, parameters, ivgdr_info):
     """This function takes the parameters, distributions, and data, and writes
     them to a nicely formatted csv file for usage later"""
-    pass
+    # first split the data up into individual runs
+    for i in range(len(data)):
+        
+
+
+def gen_fit_dists(params, dists):
+    """This function, takes a parameter set and a set of distributions, it then
+    scales the distributions by the appropriate parameters and returns the
+    scaled distributions"""
+    # first scale all the passed distributions
+    sc_dists = copy.deepcopy(dists)
+    for (param, dist) in zip(params, sc_dists):
+        dist[:, 1] = param*dist[:, 1]
+    # make the fit distribution and initiailize it
+    fit_distribution = []
+    for i in range(len(sc_dists[0])):
+        fit_distribution.append([sc_dists[0][i][0], sc_dists[0][i][1]])
+    # add the other components of the fit distribution
+    for j in range(1, len(sc_dists)):
+        for i in range(len(sc_dists[j])):
+            fit_distribution[i][1] += sc_dists[j][i][1]
+    output = [np.array(fit_distribution)]
+    for dist in sc_dists:
+        output.append(dist)
+    return output
 
 
 def fit_and_mcmc(data_tuple):
@@ -549,34 +551,28 @@ def make_calc_struct(cs_lib, data, dists):
 def generate_output_dirs():
     """This function checks for the existence of the directories output is to
     be placed in, if they do not exist, they are created"""
-    # test / create the directory for csv files with individial fits
-    if not os.path.exists(CONFIG["Fits Csv Directory"]):
-        os.makedirs(CONFIG["Fits Csv Directory"])
+    # test / create the directories for csv files with individial fits
+    make_config_fit_csv_dirs()
+    # test / create the directories for fit plots
+    make_config_fit_plot_dirs()
     # test / create the directory for corner plots
     if not os.path.exists(CONFIG["Corner Plots Directory"]):
         os.makedirs(CONFIG["Corner Plots Directory"])
     # test / create the directory for probability plots
     if not os.path.exists(CONFIG["Prob Plots Directory"]):
         os.makedirs(CONFIG["Prob Plots Directory"])
-    # test / create the directories for fit plots
-    make_config_fit_plot_dir_list()
-    for fit_dir in CONFIG["Fit Plot Dirs"]:
-        if not os.path.exists(fit_dir):
-            os.makedirs(fit_dir)
     # test / create the directory for Markov Chains
     if not os.path.exists(CONFIG["Chain Directory"]):
         os.makedirs(CONFIG["Chain Directory"])
     # test / create the directory for Parameter Plots
     if not os.path.exists(CONFIG["Parameter Plots Directory"]):
         os.makedirs(CONFIG["Parameter Plots Directory"])
-    # get the directory for the output file
-    dir_name = os.path.dirname(CONFIG["Parameter File"])
     # test / create the directory for the output file
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
+    if not os.path.exists(CONFIG["Parameter Files Directory"]):
+        os.makedirs(CONFIG["Parameter Files Directory"])
 
 
-def make_config_fit_plot_dir_list():
+def make_config_fit_plot_dirs():
     """This function encapsulates the annoying task of making all the sub dir
     names for holding fit plots"""
     temp = CONFIG["Fit Plots Directory"]
@@ -603,6 +599,24 @@ def make_config_fit_plot_dir_list():
         CONFIG["Fit Plot Dirs"][i] += "Parameters/"
     for i in range(2, 12, 3):
         CONFIG["Fit Plot Dirs"][i] += "High_Edge/"
+    for fit_dir in CONFIG["Fit Plot Dirs"]:
+        if not os.path.exists(fit_dir):
+            os.makedirs(fit_dir)
+
+
+def make_config_fit_csv_fit():
+    """This function takes the configuration information and generates the two
+    folders that will hold the fit csv files"""
+    CONFIG["Fit Csv Dirs"] = [copy.deepcopy(CONFIG["Fits Csv Directory"]),
+                              copy.deepcopy(CONFIG["Fits Csv Directory"])]
+    if CONFIG["Fits Csv Directory"][-1] != "/":
+        for i in range(2):
+            CONFIG["Fit Csv Dirs"][i] += "/"
+    CONFIG["Fit Csv Dirs"][0] += "percentiles/"
+    CONFIG["Fit Csv Dirs"][0] += "peaks/"
+    for fit_dir in CONFIG["Fit Plot Dirs"]:
+        if not os.path.exists(fit_dir):
+            os.makedirs(fit_dir)
 
 
 def calc_start_params():
