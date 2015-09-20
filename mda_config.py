@@ -54,7 +54,7 @@ CONFIG["Corner Plot Samples"] = 1000000
 # plots
 CONFIG["Plot IVGDR in Fits"] = False
 # sets the max L the user wants to plot in the limited fit plot
-CONFIG["Max L For Lim Fit Plot"] = 3
+CONFIG["Fit Plot L Limit"] = 3
 # Toggle the output of sample chains, if you disable the output of Corner plots
 # this needs to be on if you later want to make the corner plots in the
 # seperate script if you want to analyze the samples in other ways
