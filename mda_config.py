@@ -18,7 +18,7 @@ CONFIG["Distribution Directory"] = "./dist/"  # complete
 
 # Information about outputs from the program
 # file to hold the fitted parameters
-CONFIG["Parameter File"] = "./fits/params.csv"
+CONFIG["Parameter Files Directory"] = "./fits/"
 # path to the directory that will hold the distribution outputs
 CONFIG["Fits Csv Directory"] = "./fits/csv/"
 # directory to store triangle plots this is used by the seperate, make
