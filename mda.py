@@ -181,18 +181,9 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
     """This function takes everything and generates the plots for individual
     fits at each energy"""
     # first make the directory names
-    fit_dirs = [CONFIG["Fit Plots Directory"], CONFIG["Fit Plots Directory"]]
-    if fit_dirs[0][-1] == '/':
-        fit_dirs[0] += "params_from_percentiles"
-        fit_dirs[1] += "params_from_peaks"
-    else:
-        fit_dirs[0] += "/params_from_percentiles"
-        fit_dirs[1] += "/params_from_peaks"
-    plot_type_list = ["full", "lim"]
-    param_type_list = ["loerr", "fit", "hierr"]
-    legend_names = ["fit"]
+    legend = ["fit"]
     for i in range(len(parameters[0][0])):
-        legend_names.append(r"$l_{%d}$" % i)
+        legend.append(r"$l_{%d}$" % i)
     # loop through each set of data and distributions
     for i in range(len(data)):
         # extract the things pertinet to this set from the arguments
@@ -200,36 +191,59 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
         dist_set = copy.deepcopy(dists[i])
         param_set = list(copy.deepcopy(parameters[i]))
         exp_points = data[i][1]
-        # generate the plot names
-        # directory/full\lim_loerr\fit\hierr_A##_E##.ext
-        plot_name = "%s/%s_%s_A%d_E%4.1f.%s"
+        # handle ivgdr
         if CONFIG["Subtract IVGDR"]:
             dist_set.append(ivgdr_info[0][i])
             param_set.append((ivgdr_info[1][i], 0.0, 0.0))
-            legend_names.append(r"$l_{-1}$")
+            legend.append(r"$l_{-1}$")
         # loop through the plots to generate
         for i in range(2):  # peaks or percentiles?
             # choose our parameter set and generate the three sets of fits
-            pset = [[(vals[0] - vals[1]) for vals in param_set[i]],
-                    [vals[0] for vals in param_set[i]],
-                    [(vals[0] + vals[2]) for vals in param_set[i]]]
+            pset = gen_param_sets_for_fit_plot(param_set[i])
             for k in range(3):  # params-lo_errs, params, params+hi_errs
-                scaled_dists = gen_fit_dists(pset[k], dist_set)
+                sc_dists = gen_fit_dists(pset[k], dist_set)
                 for j in range(2):  # full or limitted
-                    max_ind = len(scaled_dists)
+                    plot_path = "%sA%d_E%4.1f.%s" % (CONFIG["Fit Plot Dirs"]
+                                                     [6*i+3*j+k],
+                                                     CONFIG["Target A"],
+                                                     energy,
+                                                     CONFIG["Plot Format"])
+                    # now decide how much of the distributions to call the
+                    # gen fit plot function on
                     if j == 1:
-                        max_ind = (CONFIG["Max L For Lim Fit Plot"] + 2)
+                        gen_fit_plot(exp_points,
+                                     sc_dists[:(CONFIG["Fit Plot L Limit"]+2)],
+                                     legend[:(CONFIG["Fit Plot L Limit"]+2)],
+                                     plot_path)
                     elif (CONFIG["Subtract IVGDR"] and
                           not CONFIG["Plot IVGDR in Fits"]):
-                        max_ind -= 1
-                    plot_file_name = plot_name % (fit_dirs[i],
-                                                  plot_type_list[j],
-                                                  param_type_list[k],
-                                                  CONFIG["Target A"],
-                                                  energy,
-                                                  CONFIG["Plot Format"])
-                    gen_fit_plot(exp_points, scaled_dists[:max_ind],
-                                 legend_names[:max_ind], plot_file_name)
+                        gen_fit_plot(exp_points,
+                                     sc_dists[:(len(sc_dists)-1)],
+                                     legend[:(len(sc_dists)-1)],
+                                     plot_path)
+                    else:
+                        gen_fit_plot(exp_points,
+                                     sc_dists[:len(sc_dists)],
+                                     legend[:len(sc_dists)],
+                                     plot_path)
+
+
+def gen_param_sets_for_fit_plot(params):
+    """This function takes a single set of parameters and generates three sets
+    of parameters, the first, decreased by the lower error bar, the second
+    equal to the parameter fit value, and the third, increased by the upper
+    error bar"""
+    temp = [[(vals[0] - vals[2]) for vals in params],
+            [vals[0] for vals in params],
+            [(vals[0] + vals[1]) for vals in params]]
+    for pset in temp:
+        for i in range(len(pset)):
+            if pset[i] < 0.0:
+                print "Got a negative parameter when subtracting errors from"
+                print "parameters for fit plots, this should not be possible"
+                sys.exit()
+                pset[i] = 0.0
+    return temp
 
 
 def gen_fit_dists(params, dists):
@@ -237,19 +251,19 @@ def gen_fit_dists(params, dists):
     scales the distributions by the appropriate parameters and returns the
     scaled distributions"""
     # first scale all the passed distributions
-    scaled_dists = copy.deepcopy(dists)
-    for (param, dist) in zip(params, scaled_dists):
+    sc_dists = copy.deepcopy(dists)
+    for (param, dist) in zip(params, sc_dists):
         dist[:, 1] = param*dist[:, 1]
     # make the fit distribution and initiailize it
     fit_distribution = []
-    for i in range(len(scaled_dists[0])):
-        fit_distribution.append([scaled_dists[0][i][0], scaled_dists[0][i][1]])
+    for i in range(len(sc_dists[0])):
+        fit_distribution.append([sc_dists[0][i][0], sc_dists[0][i][1]])
     # add the other components of the fit distribution
-    for j in range(1, len(scaled_dists)):
-        for i in range(len(scaled_dists[j])):
-            fit_distribution[i][1] += scaled_dists[j][i][1]
+    for j in range(1, len(sc_dists)):
+        for i in range(len(sc_dists[j])):
+            fit_distribution[i][1] += sc_dists[j][i][1]
     output = [np.array(fit_distribution)]
-    for dist in scaled_dists:
+    for dist in sc_dists:
         output.append(dist)
     return output
 
@@ -269,17 +283,40 @@ def gen_fit_plot(points, dists, legends, plot_name):
     axes.set_yscale('log', subsy=[2, 3, 4, 5, 6, 7, 8, 9])
     axes.set_xscale('linear')
     # plot the points
-    axes.errorbar(pt_x_vals, pt_y_vals, yerr=pt_e_vals, fmt="bo",
-                  label="Exp. Data")
+    axes.errorbar(pt_x_vals, pt_y_vals, yerr=pt_e_vals, fmt="ko",
+                  label="Exp. Data", markersize=2.0)
     # plot the distributions
     for i in range(len(dists)):
         axes.plot(dists[i][:, 0], dists[i][:, 1],
                   line_styles[i % len(line_styles)], label=legends[i])
     axes.set_xlim(0.0, math.ceil(pt_x_vals.max()))
+    (ymin_val, ymax_val) = find_y_extrema(pt_y_vals.max(), dists,
+                                          math.ceil(pt_x_vals.max()))
+    axes.set_ylim(ymin_val, ymax_val)
     legend = axes.legend(loc='lower left', ncol=3)
-    legend.get_frame.set_facecolor("cornflowerblue")
+    legend.get_frame().set_facecolor("white")
     fig.savefig(plot_name)
     plt.close(fig)
+
+
+def find_y_extrema(data_max, dists, xmax):
+    """This function scans the distributions provided searching for the minimum
+    value with angle less than xmax, it also looks to find the maximum value
+    (be it in a distribution or the data maximum it then returns 
+    (10^(floor(log(ymin))), 10^(ceiling(log(ymax)))"""
+    current_min = 100000000000.0
+    current_max = data_max
+    for dist in dists:
+        for point in dist:
+            if point[0] > xmax:
+                break
+            if point[1] < current_min and point[1] > 0.0:
+                current_min = point[1]
+            elif point[1] > current_max:
+                current_max = point[1]
+    log_min = math.floor(math.log10(current_min))
+    log_max = math.ceil(math.log10(current_max))
+    return (math.pow(10.0, log_min), math.pow(10.0, log_max))
 
 
 def write_fits(data, dists, parameters, ivgdr_info):
@@ -522,20 +559,10 @@ def generate_output_dirs():
     if not os.path.exists(CONFIG["Prob Plots Directory"]):
         os.makedirs(CONFIG["Prob Plots Directory"])
     # test / create the directories for fit plots
-    temp_fit_dir = CONFIG["Fit Plots Directory"]
-    if temp_fit_dir[-1] == '/':
-        temp_fit_dir += "params_from_peaks"
-    else:
-        temp_fit_dir += "/params_from_peaks"
-    if not os.path.exists(temp_fit_dir):
-        os.makedirs(temp_fit_dir)
-    temp_fit_dir = CONFIG["Fit Plots Directory"]
-    if temp_fit_dir[-1] == '/':
-        temp_fit_dir += "params_from_percentiles"
-    else:
-        temp_fit_dir += "/params_from_percentiles"
-    if not os.path.exists(temp_fit_dir):
-        os.makedirs(temp_fit_dir)
+    make_config_fit_plot_dir_list()
+    for fit_dir in CONFIG["Fit Plot Dirs"]:
+        if not os.path.exists(fit_dir):
+            os.makedirs(fit_dir)
     # test / create the directory for Markov Chains
     if not os.path.exists(CONFIG["Chain Directory"]):
         os.makedirs(CONFIG["Chain Directory"])
@@ -547,6 +574,35 @@ def generate_output_dirs():
     # test / create the directory for the output file
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
+
+
+def make_config_fit_plot_dir_list():
+    """This function encapsulates the annoying task of making all the sub dir
+    names for holding fit plots"""
+    temp = CONFIG["Fit Plots Directory"]
+    CONFIG["Fit Plot Dirs"] = [copy.deepcopy(temp) for _ in range(12)]
+    if temp[-1] != '/':
+        for dir_name in CONFIG["Fit Plot Dirs"]:
+            dir_name += "/"
+    # split the dirs first by peak vs percentile
+    for i in range(0, 6):
+        CONFIG["Fit Plot Dirs"][i] += "Percentiles/"
+    for i in range(6, 12):
+        CONFIG["Fit Plot Dirs"][i] += "Peaks/"
+    # now split them by limited and unlimited
+    for i in range(0, 3):
+        CONFIG["Fit Plot Dirs"][i] += "Complete/"
+        CONFIG["Fit Plot Dirs"][i+6] += "Complete/"
+    for i in range(3, 6):
+        CONFIG["Fit Plot Dirs"][i] += "Limited/"
+        CONFIG["Fit Plot Dirs"][i+6] += "Limited/"
+    # now split them by lo_err, fit, hi_err
+    for i in range(0, 12, 3):
+        CONFIG["Fit Plot Dirs"][i] += "Low_Edge/"
+    for i in range(1, 12, 3):
+        CONFIG["Fit Plot Dirs"][i] += "Parameters/"
+    for i in range(2, 12, 3):
+        CONFIG["Fit Plot Dirs"][i] += "High_Edge/"
 
 
 def calc_start_params():
