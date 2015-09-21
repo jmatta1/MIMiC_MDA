@@ -39,8 +39,6 @@ CONFIG = __import__(CF_FILE_NAME).CONFIG
 sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 
 # TODO: peak find based parameters
-# TODO: implement parameter plot function
-# TODO: implement parameter writer
 
 PLOT_FORMAT_LIST = ["svg", "svgz", "pdf", "ps", "eps", "png"]
 
@@ -168,9 +166,54 @@ def initialize_mda():
 def write_param_plots(parameters, energy_set):
     """This function takes the generated parameters and makes the plots for
     each L of the parameters"""
-    # first split the data into the two types
-    perc_data = [pset[0] for pset in parameters]
-    peak_data = [pset[1] for pset in parameters]
+    # loop through each set of parameters
+    for i in range((CONFIG["Maximum L"]+1)):
+        # first split the data into the two types
+        perc_data = [pset[0][i] for pset in parameters]
+        peak_data = [pset[1][i] for pset in parameters]
+        # calculate the two file names
+        perc_path = CONFIG["Param Plot Dirs"][0]
+        peak_path = CONFIG["Param Plot Dirs"][1]
+        perc_path += ("A%d_L%d_percentile_parameters.%s" %
+                      (CONFIG["Target A"], i, CONFIG["Plot Format"]))
+        peak_path += ("A%d_L%d_peak_parameters.%s" % (CONFIG["Target A"], i,
+                                                      CONFIG["Plot Format"]))
+        make_param_plot(perc_path, perc_data, energy_set, i)
+        make_param_plot(peak_path, peak_data, energy_set, i)
+
+
+def make_param_plot(path, params, energy_set, l_value):
+    """This takes a set of parameters for a given L, the energies they are from
+    and generates a plot of those parameters. It then writes that plot to the
+    specified path"""
+    pt_x_vals = np.array(energy_set)
+    param_array = np.array(params)
+    pt_y_vals = param_array[:, 0]
+    pt_e_vals = [param_array[:, 1], param_array[:, 2]]
+    hi_vals = pt_y_vals + pt_e_vals[0]
+    # make the figure and stuff
+    fig, axes = plt.subplots()
+    # set up the axes
+    axes.set_yscale('linear')
+    axes.set_xscale('linear')
+    # plot the data
+    axes.errorbar(pt_x_vals, pt_y_vals, yerr=pt_e_vals, fmt="ko",
+                  label=r"$Exp$", markersize=2.0)
+    # set the axis limits
+    axes.set_xlim((pt_x_vals.min() - 1.0), (pt_x_vals.max() + 1.0))
+    axes.set_ylim(0.0, 1.2 * hi_vals.max())
+    # label the axes
+    axes.set_xlabel('Excitation Energy (MeV)')
+    axes.set_ylabel(r'$a_{%d}$' % l_value)
+    # make the legend
+    # legend = axes.legend(loc='right', bbox_to_anchor=(1.2, 0.5), ncol=1)
+    legend = axes.legend(loc='upper left', ncol=1)
+    legend.get_frame().set_facecolor("white")
+    # save and close the figure
+    # fig.savefig(path, additional_artists=[legend], bbox_inches='tight')
+    fig.savefig(path, bbox_inches='tight')
+    plt.close(fig)
+    
 
 
 def write_param_sets(parameters, energy_set):
@@ -761,11 +804,24 @@ def generate_output_dirs():
     if not os.path.exists(CONFIG["Chain Directory"]):
         os.makedirs(CONFIG["Chain Directory"])
     # test / create the directory for Parameter Plots
-    if not os.path.exists(CONFIG["Parameter Plots Directory"]):
-        os.makedirs(CONFIG["Parameter Plots Directory"])
+    make_config_param_plot_dirs()
     # test / create the directory for the output file
     if not os.path.exists(CONFIG["Parameter Files Directory"]):
         os.makedirs(CONFIG["Parameter Files Directory"])
+
+
+def make_config_param_plot_dirs():
+    """This function makes the parameter plot directories"""
+    temp = CONFIG["Parameter Plots Directory"]
+    CONFIG["Param Plot Dirs"] = [copy.deepcopy(temp) for _ in range(2)]
+    if temp[-1] != "/":
+        CONFIG["Param Plot Dirs"][0] += "/"
+        CONFIG["Param Plot Dirs"][1] += "/"
+    CONFIG["Param Plot Dirs"][0] += "Percentiles/"
+    CONFIG["Param Plot Dirs"][1] += "Peaks/"
+    for i in range(2):
+        if not os.path.exists(CONFIG["Param Plot Dirs"][i]):
+            os.makedirs(CONFIG["Param Plot Dirs"][i])
 
 
 def make_config_fit_plot_dirs():
