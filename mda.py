@@ -140,12 +140,12 @@ def initialize_mda():
                          start_params) for i in range(len(fit_data))]
     print "Data is interleaved"
     generate_output_dirs()
-    #mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
+    mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print ("Starting MDA process, working on up to %d energies simultaneously"
            % CONFIG["Number of Threads"])
-    #parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
+    parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    parameters = map(fit_and_mcmc, interleaved_data)
+    # parameters = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     print "Writing fit files"
     write_fits(exp_data, dists, parameters, ivgdr_info)
