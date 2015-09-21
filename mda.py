@@ -12,10 +12,10 @@ import math
 import copy
 import emcee
 import os
+import corner
 import matplotlib.pyplot as plt
 import numpy as np
 import ctypes as ct
-import corner as tplot
 from scipy import interpolate
 from scipy import optimize
 
@@ -42,6 +42,7 @@ sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 # TODO: implement parameter plot function
 # TODO: implement fit csv writer
 # TODO: implement parameter writer
+# TODO: Axis Labels for fit plots
 
 PLOT_FORMAT_LIST = ["svg", "svgz", "pdf", "ps", "eps", "png"]
 
@@ -181,7 +182,7 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
     """This function takes everything and generates the plots for individual
     fits at each energy"""
     # first make the directory names
-    legend = ["fit"]
+    legend = [r"$Fit$"]
     for i in range(len(parameters[0][0])):
         legend.append(r"$l_{%d}$" % i)
     # loop through each set of data and distributions
@@ -262,18 +263,25 @@ def gen_fit_plot(points, dists, legends, plot_name):
     axes.set_xscale('linear')
     # plot the points
     axes.errorbar(pt_x_vals, pt_y_vals, yerr=pt_e_vals, fmt="ko",
-                  label="Exp. Data", markersize=2.0)
+                  label=r"$Exp$", markersize=2.0)
     # plot the distributions
     for i in range(len(dists)):
         axes.plot(dists[i][:, 0], dists[i][:, 1],
                   line_styles[i % len(line_styles)], label=legends[i])
+    # set the scale of the x axis
     axes.set_xlim(0.0, math.ceil(pt_x_vals.max()))
+    # set the scale of the y axis
     (ymin_val, ymax_val) = find_y_extrema(pt_y_vals.max(), dists,
                                           math.ceil(pt_x_vals.max()))
     axes.set_ylim(ymin_val, ymax_val)
-    legend = axes.legend(loc='lower left', ncol=3)
+    # label the axes
+    axes.set_xlabel(r'Lab Angle $(^{\circ{}})$')
+    axes.set_ylabel(r'$(\partial^2 \sigma)/(\partial \Omega \partial E)$ ($mb/(sr*MeV)$)')
+    # make the legend
+    legend = axes.legend(loc='right', bbox_to_anchor=(1.2,0.5), ncol=1)
     legend.get_frame().set_facecolor("white")
-    fig.savefig(plot_name)
+    # save and close the figure
+    fig.savefig(plot_name, additional_artists=[legend], bbox_inches='tight')
     plt.close(fig)
 
 
@@ -292,7 +300,7 @@ def find_y_extrema(data_max, dists, xmax):
                 current_min = point[1]
             elif point[1] > current_max:
                 current_max = point[1]
-    log_min = math.floor(math.log10(current_min))
+    log_min = math.floor(2.0*math.log10(current_min))/2.0
     log_max = math.ceil(math.log10(current_max))
     return (math.pow(10.0, log_min), math.pow(10.0, log_max))
 
@@ -302,7 +310,7 @@ def write_fits(data, dists, parameters, ivgdr_info):
     them to a nicely formatted csv file for usage later"""
     # first split the data up into individual runs
     for i in range(len(data)):
-        
+        pass
 
 
 def gen_fit_dists(params, dists):
@@ -409,14 +417,14 @@ def perform_sample_manips(sampler, ndims, energy):
                   range(ndims)]
         fig = None
         if CONFIG["Corner Plot Samples"] >= num_samples:
-            fig = tplot.corner(samples, labels=lbls, extents=ranges,
-                               quantiles=quantile_list, verbose=False)
+            fig = corner.corner(samples, labels=lbls, range=ranges,
+                                quantiles=quantile_list, verbose=False)
         else:
             # randomize the sample array and then extract the first chunk of it
             np.random.shuffle(samples)
             temp_samples = samples[0:CONFIG["Corner Plot Samples"]]
-            fig = tplot.corner(temp_samples, labels=lbls, extents=ranges,
-                               quantiles=quantile_list, verbose=False)
+            fig = corner.corner(temp_samples, labels=lbls, range=ranges,
+                                quantiles=quantile_list, verbose=False)
         # make the corner plot file_name
         if CONFIG["Corner Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Corner Plots Directory"] +\
@@ -426,7 +434,7 @@ def perform_sample_manips(sampler, ndims, energy):
             fig_file_name = CONFIG["Corner Plots Directory"] +\
                 "/A%d_corner_E%4.1f.%s" % (CONFIG["Target A"], energy,
                                            CONFIG["Plot Format"])
-        fig.savefig(fig_file_name)
+        fig.savefig(fig_file_name, bbox_inches='tight')
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
     # return the point and the errors
@@ -460,8 +468,8 @@ def make_prob_plots(samples, energy):
                               (0.5 + CONFIG["Confidence Interval"] / 2.0)])
     for i in range(ndims):
         temp = samples[:, i]
-        fig = tplot.corner(temp, labels=[lbls[i]], extents=[ranges[i]],
-                           quantiles=quantile_list, verbose=False)
+        fig = corner.corner(temp, labels=[lbls[i]], range=[ranges[i]],
+                            quantiles=quantile_list, verbose=False)
         # make the probability plot file_name
         fig_file_name = None
         if CONFIG["Prob Plots Directory"][-1] == '/':
@@ -472,7 +480,7 @@ def make_prob_plots(samples, energy):
             fig_file_name = CONFIG["Prob Plots Directory"] +\
                 "/A%d_prob_en_%4.1f_a%02d.%s" % (CONFIG["Target A"], energy,
                                                  i, CONFIG["Plot Format"])
-        fig.savefig(fig_file_name)
+        fig.savefig(fig_file_name, bbox_inches='tight')
         plt.close(fig)
 
 
@@ -604,7 +612,7 @@ def make_config_fit_plot_dirs():
             os.makedirs(fit_dir)
 
 
-def make_config_fit_csv_fit():
+def make_config_fit_csv_dirs():
     """This function takes the configuration information and generates the two
     folders that will hold the fit csv files"""
     CONFIG["Fit Csv Dirs"] = [copy.deepcopy(CONFIG["Fits Csv Directory"]),
@@ -613,8 +621,8 @@ def make_config_fit_csv_fit():
         for i in range(2):
             CONFIG["Fit Csv Dirs"][i] += "/"
     CONFIG["Fit Csv Dirs"][0] += "percentiles/"
-    CONFIG["Fit Csv Dirs"][0] += "peaks/"
-    for fit_dir in CONFIG["Fit Plot Dirs"]:
+    CONFIG["Fit Csv Dirs"][1] += "peaks/"
+    for fit_dir in CONFIG["Fit Csv Dirs"]:
         if not os.path.exists(fit_dir):
             os.makedirs(fit_dir)
 
