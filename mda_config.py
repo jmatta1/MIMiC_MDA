@@ -20,7 +20,7 @@ CONFIG["Distribution Directory"] = "./dist/"  # complete
 # file to hold the fitted parameters
 CONFIG["Parameter Files Directory"] = "./fits/"
 # path to the directory that will hold the distribution outputs
-CONFIG["Fits Csv Directory"] = "./fits/csv/"
+CONFIG["Fits Csv Directory"] = "./fits/fit_csv/"
 # directory to store triangle plots this is used by the seperate, make
 # triangles code due to how much memory this consumes
 CONFIG["Corner Plots Directory"] = "./fits/corner_plots/"
@@ -79,9 +79,9 @@ CONFIG["IVGDR Width"] = 7.91453  # complete
 # Maximum Angle (in degrees) to fit with
 CONFIG["Max Theta"] = 10.0  # complete
 # Energy such that all fitted energies are >= to it
-CONFIG["Start Energy"] = 11.4  # complete
+CONFIG["Start Energy"] = 16.4  # complete
 # Energy such that all fitted energies are <= to it
-CONFIG["Final Energy"] = 11.6  # complete
+CONFIG["Final Energy"] = 16.6  # complete
 
 # Limits on and paramters of the fit
 # Maximum L value to fit with
