@@ -40,9 +40,7 @@ sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 
 # TODO: peak find based parameters
 # TODO: implement parameter plot function
-# TODO: implement fit csv writer
 # TODO: implement parameter writer
-# TODO: Axis Labels for fit plots
 
 PLOT_FORMAT_LIST = ["svg", "svgz", "pdf", "ps", "eps", "png"]
 
@@ -144,12 +142,12 @@ def initialize_mda():
                          start_params) for i in range(len(fit_data))]
     print "Data is interleaved"
     generate_output_dirs()
-    mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
+    # mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print ("Starting MDA process, working on up to %d energies simultaneously"
            % CONFIG["Number of Threads"])
-    parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
+    # parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    # parameters = map(fit_and_mcmc, interleaved_data)
+    parameters = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     print "Writing fit files"
     write_fits(exp_data, dists, parameters, ivgdr_info)
@@ -301,7 +299,7 @@ def find_y_extrema(data_max, dists, xmax):
             elif point[1] > current_max:
                 current_max = point[1]
     log_min = math.floor(2.0*math.log10(current_min))/2.0
-    log_max = math.ceil(math.log10(current_max))
+    log_max = math.ceil(2.0*math.log10(current_max))/2.0
     return (math.pow(10.0, log_min), math.pow(10.0, log_max))
 
 
@@ -310,7 +308,142 @@ def write_fits(data, dists, parameters, ivgdr_info):
     them to a nicely formatted csv file for usage later"""
     # first split the data up into individual runs
     for i in range(len(data)):
-        pass
+        energy = copy.deepcopy(data[i][0])
+        points = copy.deepcopy(data[i][1])
+        dist_set = copy.deepcopy(dists[i])
+        perc_set = copy.deepcopy(parameters[i][0])
+        peak_set = copy.deepcopy(parameters[i][1])
+        # test if we are subtracting the IVGDR
+        if CONFIG["Subtract IVGDR"]:
+            dist_set.append(ivgdr_info[0][i])
+            perc_set.append((ivgdr_info[1][i], 0.0, 0.0))
+            peak_set.append((ivgdr_info[1][i], 0.0, 0.0))
+        # calculate the file names
+        file_paths = ["%sA%d_E%4.1f.csv" % (CONFIG["Fit Csv Dirs"][0],
+                                            CONFIG["Target A"], energy),
+                      "%sA%d_E%4.1f.csv" % (CONFIG["Fit Csv Dirs"][1],
+                                            CONFIG["Target A"], energy)]
+        # write the percentile fit
+        write_fit_csv(file_paths[0], points, perc_set, dist_set, energy)
+        # write the peak find fit
+        write_fit_csv(file_paths[1], points, peak_set, dist_set, energy)
+
+
+def write_fit_csv(path, points, pset, dist_set, energy):
+    """This function takes a file path, a set of experimental data, a parameter
+    set, a set of distributions and the ex energy of the distribution and
+    writes a nicely formated csv file with all the information in it"""
+    # first open the file to be written
+    out_file = open(path, 'w')
+    # next generate the title and column headings for the file
+    out_file.write(gen_csv_title_and_headings(energy))
+    # construct the list of lines in the file
+    num_lines = len(dist_set[0])
+    if num_lines < len(points):
+        num_lines = len(points)
+    if num_lines < len(pset):
+        num_lines = len(pset)
+    csv_list = []
+    for _ in range(num_lines):
+        csv_list.append("")
+    # append the exp data
+    append_exp_data_to_fit_csv(points, csv_list)
+    # append a blank column
+    append_str_to_fit_csv(", ", csv_list)
+    # append the parameter data
+    append_parameter_data_to_fit_csv(pset, csv_list)
+    # append a blank column
+    append_str_to_fit_csv(", ", csv_list)
+    # calculate the scaled distributions
+    params = [param[0] for param in pset]
+    scaled_dists = gen_fit_dists(params, dist_set)
+    # append the distribution angles
+    append_data_column_to_fit_csv(dist_set[0][:,0], csv_list)
+    # append each distribution, and scaled distribution
+    for i in range(len(dist_set)):
+        append_data_column_to_fit_csv(dist_set[i][:,1], csv_list)
+        append_data_column_to_fit_csv(scaled_dists[i+1][:,1], csv_list)
+    # append a blank column
+    append_str_to_fit_csv(", ", csv_list)
+    # append the fit distribution
+    append_data_column_to_fit_csv(scaled_dists[0][:,1], csv_list)
+    # append the newline characters
+    append_str_to_fit_csv("\n", csv_list)
+    # write the csv list
+    for line in csv_list:
+        out_file.write(line)
+    # close the output file
+    out_file.close()
+
+
+def append_data_column_to_fit_csv(data, csv_list):
+    """This function takes a column of data and appends it to the csv list"""
+    for i in range(len(csv_list)):
+        if i < len(data):
+            csv_list[i] += ("%f, " % data[i])
+        else:
+            csv_list[i] += ", "
+
+
+def append_parameter_data_to_fit_csv(pset, csv_list):
+    """This function appends a parameter set to the csv list"""
+    # first generate the list of names
+    name_list = []
+    for i in range(len(pset)):
+        if CONFIG["Subtract IVGDR"] and i == (len(pset)-1):
+            name_list.append("a-1")
+        else:
+            name_list.append("a%d" % i)
+    # now append the names and error bars
+    for i in range(len(csv_list)):
+        if i < len(pset):
+            csv_list[i] += ("%s, %f, %f, %f, " % (name_list[i], pset[i][0],
+                                                  pset[i][1], pset[i][2]))
+        else:
+            csv_list[i] += ", , , , "
+
+
+def append_str_to_fit_csv(str_to_append, csv_list):
+    """This function appends the given string to the csv_list"""
+    for i in range(len(csv_list)):
+        csv_list[i] += str_to_append
+
+
+def append_exp_data_to_fit_csv(points, csv_list):
+    """This function takes an experimental data set and the csv list and writes
+    the data to the csv list along with a set of appropriately blank lines"""
+    for i in range(len(csv_list)):
+        if i < len(points):
+            csv_list[i] += ("%f, %f, %f, " % (points[i][0], points[i][1],
+                                                points[i][2]))
+        else:
+            csv_list[i] += " , , , "
+
+
+def gen_csv_title_and_headings(energy):
+    """This function takes the excitation energy and returns a string with the
+    csv title, and column headings"""
+    # first generate the title string
+    out_str = "Fit Information for Ex =, %4.1f\n" % energy
+    # now generate the two rows of column headings
+    # first the easy column headings
+    row1 = "Exp., Exp., Exp., , Param, Param., Pos., Neg., , Dist., "
+    row2 = "Angle, CS, Error, , Name, Value, Error, Error, , Angle, "
+    # write the headings for the distributions
+    for i in range((CONFIG["Maximum L"]+1)):
+        row1 += ", Scaled, "
+        row2 += "l%d, l%d, " % (i, i)
+    # if needed write the heading for the ivgrd
+    if CONFIG["Subtract IVGDR"]:
+        row1 += ", Scaled, "
+        row2 += "IVGDR, IVGDR, "
+    # write the column headings for the fit distribution
+    row1 += ", Fit (Sum of, \n"
+    row2 += ", Scaled Dists), \n"
+    # add the two rows to out_str and return it
+    out_str += row1
+    out_str += row2
+    return out_str
 
 
 def gen_fit_dists(params, dists):
@@ -377,8 +510,7 @@ def fit_and_mcmc(data_tuple):
     # delete the struct
     cs_lib.freeMdaStruct(struct)
     # now do the rest, all of which involves calculating things from samples
-    ret_value = perform_sample_manips(sampler, ndims, energy)
-    return ret_value
+    return perform_sample_manips(sampler, ndims, energy)
 
 
 def perform_sample_manips(sampler, ndims, energy):
