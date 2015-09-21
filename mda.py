@@ -140,12 +140,12 @@ def initialize_mda():
                          start_params) for i in range(len(fit_data))]
     print "Data is interleaved"
     generate_output_dirs()
-    # mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
+    mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print ("Starting MDA process, working on up to %d energies simultaneously"
            % CONFIG["Number of Threads"])
-    # parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
+    parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    parameters = map(fit_and_mcmc, interleaved_data)
+    # parameters = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     print "Writing fit files"
     write_fits(exp_data, dists, parameters, ivgdr_info)
@@ -213,7 +213,6 @@ def make_param_plot(path, params, energy_set, l_value):
     # fig.savefig(path, additional_artists=[legend], bbox_inches='tight')
     fig.savefig(path, bbox_inches='tight')
     plt.close(fig)
-    
 
 
 def write_param_sets(parameters, energy_set):
@@ -373,7 +372,8 @@ def gen_fit_plot(points, dists, legends, plot_name):
     axes.set_ylim(ymin_val, ymax_val)
     # label the axes
     axes.set_xlabel(r'Lab Angle $(^{\circ{}})$')
-    axes.set_ylabel(r'$(\partial^2 \sigma)/(\partial \Omega \partial E)$ ($mb/(sr*MeV)$)')
+    axes.set_ylabel(r'$(\partial^2 \sigma)/(\partial \Omega \partial E)$'
+                    ' ($mb/(sr*MeV)$)')
     # make the legend
     legend = axes.legend(loc='right', bbox_to_anchor=(1.2, 0.5), ncol=1)
     legend.get_frame().set_facecolor("white")
@@ -760,7 +760,12 @@ def do_init_fit(start, struct, cs_lib):
     init_params = np.array(start, dtype=np.float64)
     ret_vals = optimize.fmin_l_bfgs_b(call_chi_sq,
                                       init_params, bounds=bnds,
-                                      epsilon=1e-03, approx_grad=True,
+                                      epsilon=1e-05, approx_grad=True,
+                                      args=(cs_lib, struct), iprint=0,
+                                      factr=10.0)
+    ret_vals = optimize.fmin_l_bfgs_b(call_chi_sq,
+                                      ret_vals[1], bounds=bnds,
+                                      epsilon=1e-05, approx_grad=True,
                                       args=(cs_lib, struct), iprint=0,
                                       factr=10.0)
     return (ret_vals[1], ret_vals[0])
