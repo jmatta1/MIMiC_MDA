@@ -155,25 +155,81 @@ def initialize_mda():
     print "Writing fit plots"
     make_fit_plots(exp_data, dists, parameters, ivgdr_info)
     # write the two parameter sets
+    energy_set = [val[0] for val in exp_data]
     print "Writing parameter sets"
-    write_param_sets(parameters)
+    write_param_sets(parameters, energy_set)
     # write the parameter plots
     print "Writing parameter plots"
-    write_param_plots(parameters)
+    write_param_plots(parameters, energy_set)
     # and now we are completely done
     print "MDA and output complete"
 
 
-def write_param_plots(parameters):
+def write_param_plots(parameters, energy_set):
     """This function takes the generated parameters and makes the plots for
     each L of the parameters"""
-    pass
+    # first split the data into the two types
+    perc_data = [pset[0] for pset in parameters]
+    peak_data = [pset[1] for pset in parameters]
 
 
-def write_param_sets(parameters):
+def write_param_sets(parameters, energy_set):
     """This function takes the generated parameters and writes the sets from
     percentiles and the sets from peak find to seperate files"""
-    pass
+    # first split the data into the two types
+    perc_data = [pset[0] for pset in parameters]
+    peak_data = [pset[1] for pset in parameters]
+    # generate the file names
+    perc_path = CONFIG["Parameter Files Directory"]
+    peak_path = CONFIG["Parameter Files Directory"]
+    if CONFIG["Parameter Files Directory"][-1] != "/":
+        perc_path += "/"
+        peak_path += "/"
+    perc_path += ("A%d_percentile_parameters.csv" % CONFIG["Target A"])
+    peak_path += ("A%d_peak_parameters.csv" % CONFIG["Target A"])
+    # now call the function that writes a parameter set
+    write_horizontal_param_file(perc_path, perc_data, energy_set)
+    write_horizontal_param_file(peak_path, peak_data, energy_set)
+
+
+def write_horizontal_param_file(path, params, energy_set):
+    """This function takes a set of parameters and their corresponding energies
+    and writes the data to the specified path"""
+    # open the file for writing
+    out_file = open(path, 'w')
+    # write the header
+    out_file.write(generate_param_file_header())
+    # write each line of parameters and energies
+    for i in range(len(params)):
+        out_file.write(gen_param_file_line(energy_set[i], params[i]))
+    # close the file we wrote
+    out_file.close()
+
+
+def gen_param_file_line(energy, params):
+    """This function takes the excitation energy and the parameters for that
+    energy and generates the string to be written to the file"""
+    out_str = ("%f, , " % energy)
+    for i in range((CONFIG["Maximum L"]+1)):
+        out_str += ("%f, %f, %f, , " % params[i])
+    out_str += "\n"
+    return out_str
+
+
+def generate_param_file_header():
+    """This function uses config information to generate an appropriate header
+    for the parameter file"""
+    out_str = "MDA parameters extracted with percentile techniques\n"
+    hrow1 = "Excitation, , "
+    hrow2 = "Energy, , "
+    for i in range((CONFIG["Maximum L"]+1)):
+        hrow1 += ("a%d, a%d, a%d, , " % (i, i, i))
+        hrow2 += "Value, Pos. Err, Neg. Err., , "
+    out_str += hrow1
+    out_str += "\n"
+    out_str += hrow2
+    out_str += "\n"
+    return out_str
 
 
 def make_fit_plots(data, dists, parameters, ivgdr_info):
@@ -276,7 +332,7 @@ def gen_fit_plot(points, dists, legends, plot_name):
     axes.set_xlabel(r'Lab Angle $(^{\circ{}})$')
     axes.set_ylabel(r'$(\partial^2 \sigma)/(\partial \Omega \partial E)$ ($mb/(sr*MeV)$)')
     # make the legend
-    legend = axes.legend(loc='right', bbox_to_anchor=(1.2,0.5), ncol=1)
+    legend = axes.legend(loc='right', bbox_to_anchor=(1.2, 0.5), ncol=1)
     legend.get_frame().set_facecolor("white")
     # save and close the figure
     fig.savefig(plot_name, additional_artists=[legend], bbox_inches='tight')
@@ -286,7 +342,7 @@ def gen_fit_plot(points, dists, legends, plot_name):
 def find_y_extrema(data_max, dists, xmax):
     """This function scans the distributions provided searching for the minimum
     value with angle less than xmax, it also looks to find the maximum value
-    (be it in a distribution or the data maximum it then returns 
+    (be it in a distribution or the data maximum it then returns
     (10^(floor(log(ymin))), 10^(ceiling(log(ymax)))"""
     current_min = 100000000000.0
     current_max = data_max
@@ -351,22 +407,22 @@ def write_fit_csv(path, points, pset, dist_set, energy):
     # append a blank column
     append_str_to_fit_csv(", ", csv_list)
     # append the parameter data
-    append_parameter_data_to_fit_csv(pset, csv_list)
+    append_parameters_to_fit_csv(pset, csv_list)
     # append a blank column
     append_str_to_fit_csv(", ", csv_list)
     # calculate the scaled distributions
     params = [param[0] for param in pset]
     scaled_dists = gen_fit_dists(params, dist_set)
     # append the distribution angles
-    append_data_column_to_fit_csv(dist_set[0][:,0], csv_list)
+    append_data_column_to_fit_csv(dist_set[0][:, 0], csv_list)
     # append each distribution, and scaled distribution
     for i in range(len(dist_set)):
-        append_data_column_to_fit_csv(dist_set[i][:,1], csv_list)
-        append_data_column_to_fit_csv(scaled_dists[i+1][:,1], csv_list)
+        append_data_column_to_fit_csv(dist_set[i][:, 1], csv_list)
+        append_data_column_to_fit_csv(scaled_dists[i+1][:, 1], csv_list)
     # append a blank column
     append_str_to_fit_csv(", ", csv_list)
     # append the fit distribution
-    append_data_column_to_fit_csv(scaled_dists[0][:,1], csv_list)
+    append_data_column_to_fit_csv(scaled_dists[0][:, 1], csv_list)
     # append the newline characters
     append_str_to_fit_csv("\n", csv_list)
     # write the csv list
@@ -385,7 +441,7 @@ def append_data_column_to_fit_csv(data, csv_list):
             csv_list[i] += ", "
 
 
-def append_parameter_data_to_fit_csv(pset, csv_list):
+def append_parameters_to_fit_csv(pset, csv_list):
     """This function appends a parameter set to the csv list"""
     # first generate the list of names
     name_list = []
@@ -415,7 +471,7 @@ def append_exp_data_to_fit_csv(points, csv_list):
     for i in range(len(csv_list)):
         if i < len(points):
             csv_list[i] += ("%f, %f, %f, " % (points[i][0], points[i][1],
-                                                points[i][2]))
+                                              points[i][2]))
         else:
             csv_list[i] += " , , , "
 
@@ -718,8 +774,8 @@ def make_config_fit_plot_dirs():
     temp = CONFIG["Fit Plots Directory"]
     CONFIG["Fit Plot Dirs"] = [copy.deepcopy(temp) for _ in range(12)]
     if temp[-1] != '/':
-        for dir_name in CONFIG["Fit Plot Dirs"]:
-            dir_name += "/"
+        for i in range(len(CONFIG["Fit Plot Dirs"])):
+            CONFIG["Fit Plot Dirs"][i] += "/"
     # split the dirs first by peak vs percentile
     for i in range(0, 6):
         CONFIG["Fit Plot Dirs"][i] += "Percentiles/"
