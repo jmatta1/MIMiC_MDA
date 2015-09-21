@@ -81,9 +81,9 @@ CONFIG["IVGDR Width"] = 7.91453  # complete
 # Maximum Angle (in degrees) to fit with
 CONFIG["Max Theta"] = 10.0  # complete
 # Energy such that all fitted energies are >= to it
-CONFIG["Start Energy"] = 16.4  # complete
+CONFIG["Start Energy"] = 11.4  # complete
 # Energy such that all fitted energies are <= to it
-CONFIG["Final Energy"] = 16.6  # complete
+CONFIG["Final Energy"] = 36.6  # complete
 
 # Limits on and paramters of the fit
 # Maximum L value to fit with
@@ -100,23 +100,23 @@ CONFIG["EWSR Fractions"] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]  # complete
 # 4 sigma -> 0.99993666
 CONFIG["Confidence Interval"] = 0.682689492  # complete
 # holds the number of points to sample for each walker
-CONFIG["Sample Points"] = 1050  # complete
+CONFIG["Sample Points"] = 4050  # complete
 # holds the number of walks to run
-CONFIG["Number of Walkers"] = 1000  # complete
+CONFIG["Number of Walkers"] = 4000  # complete
 # holds the number of concurrent threads
 CONFIG["Number of Threads"] = 4  # complete
 # Lists of starting points for each a_L in the initial fits
 # (max a_L = 1.0/(EWSR Fraction_L)
 # ... This continues for as many Ls as you have
 # for example: CONFIG["Start Pts a23"] = [0.5]
-CONFIG["Start Pts a0"] = [0.0, 0.05]#, 0.10, 0.15, 0.2]  # complete
-CONFIG["Start Pts a1"] = [0.0, 0.05]#, 0.10, 0.15, 0.2]  # complete
-CONFIG["Start Pts a2"] = [0.0, 0.05]#, 0.10, 0.15, 0.2]  # complete
-CONFIG["Start Pts a3"] = [0.0, 0.10]#, 0.2]  # complete
-CONFIG["Start Pts a4"] = [0.05, 0.15]  # complete
+CONFIG["Start Pts a0"] = [0.0, 0.05, 0.10, 0.15, 0.2]  # complete
+CONFIG["Start Pts a1"] = [0.0, 0.05, 0.10, 0.15, 0.2]  # complete
+CONFIG["Start Pts a2"] = [0.0, 0.05, 0.10, 0.15, 0.2]  # complete
+CONFIG["Start Pts a3"] = [0.0, 0.05, 0.10, 0.15, 0.2]  # complete
+CONFIG["Start Pts a4"] = [0.0, 0.05, 0.10, 0.15, 0.2]  # complete
 CONFIG["Start Pts a5"] = [0.05, 0.15]  # complete
-CONFIG["Start Pts a6"] = [0.1]  # complete
-CONFIG["Start Pts a7"] = [0.1]  # complete
+CONFIG["Start Pts a6"] = [0.05, 0.15]  # complete
+CONFIG["Start Pts a7"] = [0.05, 0.15]  # complete
 # Number of refined points to use to generate initial positions for walkers
 CONFIG["Number Walker Generators"] = 20  # complete
 # Spread of the initial sampling positions for walkers
