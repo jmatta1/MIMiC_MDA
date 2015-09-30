@@ -38,7 +38,6 @@ CONFIG = __import__(CF_FILE_NAME).CONFIG
 # restore the dont_write_bytecode variable to its original value
 sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
 
-# TODO: peak find based parameters
 
 PLOT_FORMAT_LIST = ["svg", "svgz", "pdf", "ps", "eps", "png"]
 
@@ -114,10 +113,10 @@ def initialize_mda():
     subtracts all the ivgdr components if needed then calls the functions
     that do the initial fitting and then the sampling"""
     # read the raw data
-    exp_data = read_row_cs_data_file(CONFIG["Input File Path"],
-                                     CONFIG["Max Theta"],
-                                     CONFIG["Start Energy"],
-                                     CONFIG["Final Energy"])
+    (exp_data, plot_data) = read_row_cs_data_file(CONFIG["Input File Path"],
+                                                  CONFIG["Max Theta"],
+                                                  CONFIG["Start Energy"],
+                                                  CONFIG["Final Energy"])
     # now read and subtract the IVGDR data
     ivgdr_info = handle_ivgdr(exp_data)
     sub_data = ivgdr_info[2]
@@ -148,7 +147,7 @@ def initialize_mda():
     # parameters = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     print "Writing fit files"
-    write_fits(exp_data, dists, parameters, ivgdr_info)
+    write_fits(plot_data, dists, parameters, ivgdr_info)
     # make the fit plots
     print "Writing fit plots"
     make_fit_plots(exp_data, dists, parameters, ivgdr_info)
@@ -201,10 +200,14 @@ def make_param_plot(path, params, energy_set, l_value):
                   label=r"$Exp$", markersize=2.0)
     # set the axis limits
     axes.set_xlim((pt_x_vals.min() - 1.0), (pt_x_vals.max() + 1.0))
-    axes.set_ylim(0.0, 1.2 * hi_vals.max())
+    y_max = 1.2 * hi_vals.max()
+    if y_max < CONFIG["Float Epsilon"]:
+        ymax = 0.01
+    axes.set_ylim(0.0, y_max)
     # label the axes
     axes.set_xlabel('Excitation Energy (MeV)')
     axes.set_ylabel(r'$a_{%d}$' % l_value)
+    fig.suptitle(r'MDA Results for L=%d' % l_value)
     # make the legend
     # legend = axes.legend(loc='right', bbox_to_anchor=(1.2, 0.5), ncol=1)
     legend = axes.legend(loc='upper left', ncol=1)
@@ -308,18 +311,18 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
                     # now decide how much of the distributions to call the
                     # gen fit plot function on
                     if j == 1:
-                        gen_fit_plot(exp_points,
+                        gen_fit_plot(exp_points, energy,
                                      sc_dists[:(CONFIG["Fit Plot L Limit"]+2)],
                                      legend[:(CONFIG["Fit Plot L Limit"]+2)],
                                      plot_path)
                     elif (CONFIG["Subtract IVGDR"] and
                           not CONFIG["Plot IVGDR in Fits"]):
-                        gen_fit_plot(exp_points,
+                        gen_fit_plot(exp_points, energy,
                                      sc_dists[:(len(sc_dists)-1)],
                                      legend[:(len(sc_dists)-1)],
                                      plot_path)
                     else:
-                        gen_fit_plot(exp_points,
+                        gen_fit_plot(exp_points, energy,
                                      sc_dists[:len(sc_dists)],
                                      legend[:len(sc_dists)],
                                      plot_path)
@@ -343,7 +346,7 @@ def gen_param_sets_for_fit_plot(params):
     return temp
 
 
-def gen_fit_plot(points, dists, legends, plot_name):
+def gen_fit_plot(points, energy, dists, legends, plot_name):
     """This function takes the list of points with errors in the points var
     and the list of distributions to plot in the dists var and generates a
     nicely formatted matplotlib plot displaying them"""
@@ -374,6 +377,7 @@ def gen_fit_plot(points, dists, legends, plot_name):
     axes.set_xlabel(r'Lab Angle $(^{\circ{}})$')
     axes.set_ylabel(r'$(\partial^2 \sigma)/(\partial \Omega \partial E)$'
                     ' ($mb/(sr*MeV)$)')
+    fig.suptitle(r"MDA Fit for E$_x$=%4.1f MeV" % energy)
     # make the legend
     legend = axes.legend(loc='right', bbox_to_anchor=(1.2, 0.5), ncol=1)
     legend.get_frame().set_facecolor("white")
@@ -627,35 +631,37 @@ def perform_sample_manips(sampler, ndims, energy):
         chain_file_name = ""
         if CONFIG["Chain Directory"][-1] == '/':
             chain_file_name = CONFIG["Chain Directory"] +\
-                "A%d_chain_E%4.1f.%s" % (CONFIG["Target A"], energy,
-                                         CONFIG["Plot Format"])
+                "A%d_chain_E%4.1f.npz" % (CONFIG["Target A"], energy)
         else:
             chain_file_name = CONFIG["Chain Directory"] +\
-                "/A%d_chain_E%4.1f.%s" % (CONFIG["Target A"], energy,
-                                          CONFIG["Plot Format"])
+                "/A%d_chain_E%4.1f.npz" % (CONFIG["Target A"], energy)
         np.savez_compressed(chain_file_name, sampler.chain)
         print "Done saving MCMC samples for", energy, "MeV"
-    # make the probability plots
-    make_prob_plots(samples, energy)
     # extract the error bars
     quantile_list = np.array([(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
                               (0.5 + CONFIG["Confidence Interval"] / 2.0)])
+    values = calc_param_values(samples, quantile_list, ndims)
+    peak_vals = [param[0] for param in values[1]]
+    # make the probability plots
+    make_prob_plots(samples, energy, peak_vals)
     # make the corner plot
     if CONFIG["Generate Corner Plots"]:
         print "Commencing corner plot creation for", energy, "MeV"
         lbls = [r"$a_{%d}$" % i for i in range(ndims)]
-        ranges = [(-0.0001, (0.0001 + samples[:, i].max())) for i in
+        ranges = [(0.00, (0.0001 + samples[:, i].max())) for i in
                   range(ndims)]
         fig = None
         if CONFIG["Corner Plot Samples"] >= num_samples:
             fig = corner.corner(samples, labels=lbls, range=ranges,
-                                quantiles=quantile_list, verbose=False)
+                                quantiles=quantile_list, truths=peak_vals,
+                                verbose=False)
         else:
             # randomize the sample array and then extract the first chunk of it
             np.random.shuffle(samples)
             temp_samples = samples[0:CONFIG["Corner Plot Samples"]]
             fig = corner.corner(temp_samples, labels=lbls, range=ranges,
-                                quantiles=quantile_list, verbose=False)
+                                quantiles=quantile_list, truths=peak_vals,
+                                verbose=False)
         # make the corner plot file_name
         if CONFIG["Corner Plots Directory"][-1] == '/':
             fig_file_name = CONFIG["Corner Plots Directory"] +\
@@ -669,7 +675,7 @@ def perform_sample_manips(sampler, ndims, energy):
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
     # return the point and the errors
-    return calc_param_values(samples, quantile_list, ndims)
+    return values
 
 
 def calc_param_values(samples, quantile_list, ndims):
@@ -685,10 +691,38 @@ def find_most_likely_values(samples, ndims):
     """This function finds values by finding the peak value in the probability
     distribution, it also extracts errors by trying to encompass half the
     selected confidence interval on each size"""
-    return [(0.7, 0.2, 0.2)]*ndims
+    output = []
+    last_index = (len(samples[:,0])-1)
+    # loop through each dimension
+    for i in range(ndims):
+        # get a sorted list of the parameters
+        values = np.sort(samples[:,i])
+        if CONFIG["Float Epsilon"] > abs(values[last_index] - values[0]):
+            #the max and min are the same then there is no need for more
+            output.append((values[0], 0.0, 0.0))
+            continue
+        hist = np.histogram(values, bins=CONFIG["Num Bins"])
+        ind = np.argmax(hist[0])
+        # find the peak argument
+        peak_arg = (hist[1][ind] + hist[1][ind+1])/2.0
+        quantile = 0.0
+        for j in range(ind + 1):
+            quantile += float(hist[0][j])
+        quantile /= float(len(values))
+        # find the percentile of the peak
+        peak_percentile = (100.0 * quantile)
+        lo_p = peak_percentile - 100.0 * (CONFIG["Confidence Interval"] / 2.0)
+        if lo_p < 0.0:
+            lo_p = 0.0
+        hi_p = peak_percentile + 100.0 * (CONFIG["Confidence Interval"] / 2.0)
+        if hi_p > 100.0:
+            hi_p = 100.0
+        vals = np.percentile(values, (lo_p, peak_percentile, hi_p))
+        output.append((vals[1], vals[2]-vals[1], vals[1]-vals[0]))
+    return output
 
 
-def make_prob_plots(samples, energy):
+def make_prob_plots(samples, energy, peak_vals):
     """this function takes the list of samples and makes histograms of the
     probability distributions of the parameters using matplotlib and writes
     those histograms to the specified directory"""
@@ -700,7 +734,8 @@ def make_prob_plots(samples, energy):
     for i in range(ndims):
         temp = samples[:, i]
         fig = corner.corner(temp, labels=[lbls[i]], range=[ranges[i]],
-                            quantiles=quantile_list, verbose=False)
+                            quantiles=quantile_list, truths = [peak_vals[i]],
+                            verbose=False, bins=CONFIG["Num Bins"])
         # make the probability plot file_name
         fig_file_name = None
         if CONFIG["Prob Plots Directory"][-1] == '/':
@@ -763,11 +798,12 @@ def do_init_fit(start, struct, cs_lib):
                                       epsilon=1e-05, approx_grad=True,
                                       args=(cs_lib, struct), iprint=0,
                                       factr=10.0)
-    ret_vals = optimize.fmin_l_bfgs_b(call_chi_sq,
-                                      ret_vals[0], bounds=bnds,
-                                      epsilon=1e-05, approx_grad=True,
-                                      args=(cs_lib, struct), iprint=0,
-                                      factr=10.0)
+    for _ in range(CONFIG["Forced Extra Fits"]):
+        ret_vals = optimize.fmin_l_bfgs_b(call_chi_sq,
+                                          ret_vals[0], bounds=bnds,
+                                          epsilon=1e-05, approx_grad=True,
+                                          args=(cs_lib, struct), iprint=0,
+                                          factr=10.0)
     return (ret_vals[1], ret_vals[0])
 
 
@@ -1065,7 +1101,8 @@ def read_row_cs_data_file(file_name, max_angle, min_en, max_en):
     points with angle above max_angle are excluded"""
     # open the csv file
     input_file = open(file_name, 'r')
-    output = []
+    fit_output = []
+    plot_output = []
     # read the file line by line, each line has an energy and a list of angles
     # and cross-sections and errors
     for line in input_file:
@@ -1079,7 +1116,8 @@ def read_row_cs_data_file(file_name, max_angle, min_en, max_en):
             distribution_data = [float(x.strip()) for x in data_list[1:]]
             # distibution_data = map(lambda x: float(x.strip()), data_list[1:])
             dist_len = len(distribution_data)
-            distribution = []
+            fit_distribution = []
+            plot_distribution = []
             i = 0
             # for each trio of elements in the distribution put them in a tuple
             # and put that tuple in the distribution list this makes the
@@ -1087,15 +1125,21 @@ def read_row_cs_data_file(file_name, max_angle, min_en, max_en):
             # [(x1,y1,dy1),(x2,y2,dy2),...]
             for i in xrange(0, dist_len, 3):
                 if distribution_data[i] <= max_angle:
-                    distribution.append((distribution_data[i],
-                                         distribution_data[i+1],
-                                         distribution_data[i+2]))
+                    fit_distribution.append((distribution_data[i],
+                                             distribution_data[i+1],
+                                             distribution_data[i+2]))
+                plot_distribution.append((distribution_data[i],
+                                          distribution_data[i+1],
+                                          distribution_data[i+2]))
                 # if 15.4 < energy and energy < 15.6:
                 #    print distData[i],",",distData[i+1],",",distData[i+2]
             # put the energy and its associated distribution in a list
-            output.append([energy, np.array(distribution, dtype=np.float64)])
+            fit_output.append([energy, np.array(fit_distribution,
+                                                dtype=np.float64)])
+            plot_output.append([energy, np.array(plot_distribution,
+                                                 dtype=np.float64)])
     print "Exp Data is read in"
-    return output
+    return (fit_output, plot_output)
 
 
 SAMPLES_ERROR = """
