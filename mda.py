@@ -24,20 +24,13 @@ if len(sys.argv) != 2:
     print "\nUsage:\n\t./mda.py configuration_file\n\t  or"
     print "\tpython mda.py configuration_file\n"
     sys.exit()
-# strip off the .py if it exists
-CF_FILE_NAME = None
-if sys.argv[1][-3:] == ".py":
-    CF_FILE_NAME = sys.argv[1][0:-3]
-else:
-    CF_FILE_NAME = sys.argv[1]
-# prevent bytecode generation for the config file
-ORIGINAL_SYS_DONT_WRITE_BYTECODE = sys.dont_write_bytecode
-sys.dont_write_bytecode = True
-# import the config file
-CONFIG = __import__(CF_FILE_NAME).CONFIG
-# restore the dont_write_bytecode variable to its original value
-sys.dont_write_bytecode = ORIGINAL_SYS_DONT_WRITE_BYTECODE
-
+#now we test for file existence
+if not os.path.exists(sys.argv[1]):
+    print "Error: File {0:s} does not exist".format(sys.argv[1])
+    sys.exit()
+TEMP_PARAMS = {}
+execfile(sys.argv[1], TEMP_PARAMS)
+CONFIG = TEMP_PARAMS["CONFIG"]
 
 PLOT_FORMAT_LIST = ["svg", "svgz", "pdf", "ps", "eps", "png"]
 
@@ -113,14 +106,11 @@ def initialize_mda():
     subtracts all the ivgdr components if needed then calls the functions
     that do the initial fitting and then the sampling"""
     # read the raw data
-    (exp_data, plot_data) = read_row_cs_data_file(CONFIG["Input File Path"],
-                                                  CONFIG["Max Theta"],
-                                                  CONFIG["Start Energy"],
-                                                  CONFIG["Final Energy"])
+    (exp_data, plot_data) = read_row_cs_data_file()
     # now read and subtract the IVGDR data
     ivgdr_info = handle_ivgdr(exp_data)
-    sub_data = ivgdr_info[2]
-    # print ivgdr_dists[0], '\n', ivgdr_ewsr[0], '\n', sub_data[0]
+    #sub_data = ivgdr_info[2]
+    # print ivgdr_dists[0], '\n', ivgdr_ewsr[0], '\n', ivgdr_info[2][0]
     # now read the distributions that are used to fit the data
     dists = [[read_dist(elem[0], i) for i in range(CONFIG["Maximum L"] + 1)]
              for elem in exp_data]
@@ -129,7 +119,7 @@ def initialize_mda():
     interp_dists = interp_all_dists(dists, exp_data)
     print "Distributions interpolated and prepared for fitting"
     # now get the data divided by errors without angle values
-    fit_data = [(exp_en[1][:, 1]/exp_en[1][:, 2]) for exp_en in sub_data]
+    fit_data = [(exp_en[1][:, 1]/exp_en[1][:, 2]) for exp_en in ivgdr_info[2]]
     print "Experimental data prepared for fitting"
     # calculate the starting parameter sets for initial searches
     start_params = calc_start_params()
@@ -202,7 +192,7 @@ def make_param_plot(path, params, energy_set, l_value):
     axes.set_xlim((pt_x_vals.min() - 1.0), (pt_x_vals.max() + 1.0))
     y_max = 1.2 * hi_vals.max()
     if y_max < CONFIG["Float Epsilon"]:
-        ymax = 0.01
+        y_max = 0.01
     axes.set_ylim(0.0, y_max)
     # label the axes
     axes.set_xlabel('Excitation Energy (MeV)')
@@ -658,8 +648,8 @@ def perform_sample_manips(sampler, ndims, energy):
         else:
             # randomize the sample array and then extract the first chunk of it
             np.random.shuffle(samples)
-            temp_samples = samples[0:CONFIG["Corner Plot Samples"]]
-            fig = corner.corner(temp_samples, labels=lbls, range=ranges,
+            fig = corner.corner(samples[0:CONFIG["Corner Plot Samples"]],
+                                labels=lbls, range=ranges,
                                 quantiles=quantile_list, truths=peak_vals,
                                 verbose=False)
         # make the corner plot file_name
@@ -690,21 +680,21 @@ def calc_param_values(samples, quantile_list, ndims):
 def find_most_likely_values(samples, ndims):
     """This function finds values by finding the peak value in the probability
     distribution, it also extracts errors by trying to encompass half the
-    selected confidence interval on each size"""
+    selected confidence interval on each side"""
     output = []
-    last_index = (len(samples[:,0])-1)
+    last_index = (len(samples[:, 0])-1)
     # loop through each dimension
     for i in range(ndims):
         # get a sorted list of the parameters
-        values = np.sort(samples[:,i])
+        values = np.sort(samples[:, i])
         if CONFIG["Float Epsilon"] > abs(values[last_index] - values[0]):
             #the max and min are the same then there is no need for more
             output.append((values[0], 0.0, 0.0))
             continue
         hist = np.histogram(values, bins=CONFIG["Num Bins"])
         ind = np.argmax(hist[0])
-        # find the peak argument
-        peak_arg = (hist[1][ind] + hist[1][ind+1])/2.0
+        # find the centroid of the peak bin by looking at the bin edges
+        #peak_centroid = (hist[1][ind] + hist[1][ind+1])/2.0
         quantile = 0.0
         for j in range(ind + 1):
             quantile += float(hist[0][j])
@@ -734,7 +724,7 @@ def make_prob_plots(samples, energy, peak_vals):
     for i in range(ndims):
         temp = samples[:, i]
         fig = corner.corner(temp, labels=[lbls[i]], range=[ranges[i]],
-                            quantiles=quantile_list, truths = [peak_vals[i]],
+                            quantiles=quantile_list, truths=[peak_vals[i]],
                             verbose=False, bins=CONFIG["Num Bins"])
         # make the probability plot file_name
         fig_file_name = None
@@ -1096,11 +1086,11 @@ class IVGDRFraction(object):
         return (self.total * self.sig_ratio) / denom
 
 
-def read_row_cs_data_file(file_name, max_angle, min_en, max_en):
+def read_row_cs_data_file():
     """takes a cross-section file in row format and extracts the data,
     points with angle above max_angle are excluded"""
     # open the csv file
-    input_file = open(file_name, 'r')
+    input_file = open(CONFIG["Input File Path"], 'r')
     fit_output = []
     plot_output = []
     # read the file line by line, each line has an energy and a list of angles
@@ -1111,7 +1101,7 @@ def read_row_cs_data_file(file_name, max_angle, min_en, max_en):
         # get the energy for the distribution
         energy = float(data_list[0].strip())
         # check if the energy is in the acceptable range
-        if energy < max_en and energy > min_en:
+        if energy < CONFIG["Final Energy"] and energy > CONFIG["Start Energy"]:
             # convert each cell to a float
             distribution_data = [float(x.strip()) for x in data_list[1:]]
             # distibution_data = map(lambda x: float(x.strip()), data_list[1:])
@@ -1124,7 +1114,7 @@ def read_row_cs_data_file(file_name, max_angle, min_en, max_en):
             # distribution variable contain a list of points and errors:
             # [(x1,y1,dy1),(x2,y2,dy2),...]
             for i in xrange(0, dist_len, 3):
-                if distribution_data[i] <= max_angle:
+                if distribution_data[i] <= CONFIG["Max Theta"]:
                     fit_distribution.append((distribution_data[i],
                                              distribution_data[i+1],
                                              distribution_data[i+2]))
