@@ -24,10 +24,11 @@ if len(sys.argv) != 2:
     print "\nUsage:\n\t./mda.py configuration_file\n\t  or"
     print "\tpython mda.py configuration_file\n"
     sys.exit()
-#now we test for file existence
+# now we test for file existence
 if not os.path.exists(sys.argv[1]):
     print "Error: File {0:s} does not exist".format(sys.argv[1])
     sys.exit()
+# now set up and use the execfile function to read the parameters
 TEMP_PARAMS = {}
 execfile(sys.argv[1], TEMP_PARAMS)
 CONFIG = TEMP_PARAMS["CONFIG"]
@@ -47,8 +48,8 @@ def main():
         print 'CONFIG["Number of Threads"] <= %d\n' % cpu_count
         sys.exit()
     # check if the user set the sampling high enough for the error bars wished
-    num_samples = ((CONFIG["Sample Points"] - CONFIG["Burn-in Points"])
-                   * CONFIG["Number of Walkers"])
+    num_samples = ((CONFIG["Sample Points"] - CONFIG["Burn-in Points"]) *
+                   CONFIG["Number of Walkers"])
     samples_needed = int(math.ceil(10.0 /
                                    ((1.0 - CONFIG["Confidence Interval"]) /
                                     2.0)))
@@ -62,16 +63,10 @@ def main():
     num_dists = (1 + CONFIG["Maximum L"])
     num_ewsr = len(CONFIG["EWSR Fractions"])
     if num_ewsr > num_dists:
-        print "\nToo many EWSR fractions listed, there must be",\
-            "(1 + CONFIGURATION[\"Maximum L\"]) = %d\n" % num_dists,\
-            "EWSR fractions listed in the variable",\
-            "CONFIGURATION[\"EWSR Fractions\"], %d were given\n" % num_ewsr
+        print TOO_MANY_EWSR_ERROR.format(num_dists, num_ewsr)
         sys.exit()
     elif num_ewsr < num_dists:
-        print "\nToo few EWSR fractions listed, there must be",\
-            "(1 + CONFIGURATION[\"Maximum L\"]) =pn %d\n" % num_dists,\
-            "EWSR fractions listed in the variable",\
-            "CONFIGURATION[\"EWSR Fractions\"], %d were given\n" % num_ewsr
+        print TOO_FEW_EWSR_ERROR.format(num_dists, num_ewsr)
         sys.exit()
     # check to make certain that there are at least 10 start points
     len_array = [len(CONFIG["Start Pts a%d" % i]) for i in range(num_dists)]
@@ -79,16 +74,12 @@ def main():
     for size in len_array:
         num_cells *= size
     if num_cells < CONFIG["Number Walker Generators"]:
-        out_str = """\nYou must provide enough starting points such that there are at
-least %d points (the number of start points is the length of each start list
-multiplied together)""" % CONFIG["Number Walker Generators"]
+        out_str = NUM_STARTS_ERROR.format(CONFIG["Number Walker Generators"])
         print out_str
         sys.exit()
     # check to make certain that num sampes is a multiple of min start points
     if (num_samples % CONFIG["Number Walker Generators"]) != 0:
-        print '\nThe product ((CONFIG["Sample Points"]-CONFIG["Burn-in Points"])'\
-            '*CONFIG["Number of Walkers"])\n must be a multiple of %d' %\
-            CONFIG["Number Walker Generators"]
+        print NUM_STARTS_MULT_ERROR.format(CONFIG["Number Walker Generators"])
         sys.exit()
     # check to make certain that the given file format is one of the
     # supported formats
@@ -109,7 +100,7 @@ def initialize_mda():
     (exp_data, plot_data) = read_row_cs_data_file()
     # now read and subtract the IVGDR data
     ivgdr_info = handle_ivgdr(exp_data)
-    #sub_data = ivgdr_info[2]
+    # sub_data = ivgdr_info[2]
     # print ivgdr_dists[0], '\n', ivgdr_ewsr[0], '\n', ivgdr_info[2][0]
     # now read the distributions that are used to fit the data
     dists = [[read_dist(elem[0], i) for i in range(CONFIG["Maximum L"] + 1)]
@@ -688,13 +679,13 @@ def find_most_likely_values(samples, ndims):
         # get a sorted list of the parameters
         values = np.sort(samples[:, i])
         if CONFIG["Float Epsilon"] > abs(values[last_index] - values[0]):
-            #the max and min are the same then there is no need for more
+            # the max and min are the same then there is no need for more
             output.append((values[0], 0.0, 0.0))
             continue
         hist = np.histogram(values, bins=CONFIG["Num Bins"])
         ind = np.argmax(hist[0])
         # find the centroid of the peak bin by looking at the bin edges
-        #peak_centroid = (hist[1][ind] + hist[1][ind+1])/2.0
+        # peak_centroid = (hist[1][ind] + hist[1][ind+1])/2.0
         quantile = 0.0
         for j in range(ind + 1):
             quantile += float(hist[0][j])
@@ -1121,8 +1112,6 @@ def read_row_cs_data_file():
                 plot_distribution.append((distribution_data[i],
                                           distribution_data[i+1],
                                           distribution_data[i+2]))
-                # if 15.4 < energy and energy < 15.6:
-                #    print distData[i],",",distData[i+1],",",distData[i+2]
             # put the energy and its associated distribution in a list
             fit_output.append([energy, np.array(fit_distribution,
                                                 dtype=np.float64)])
@@ -1141,6 +1130,32 @@ for the given confidence interval. The minimum number of samples necessary is:
 
 For more information look at the mda_config.py file.
 """
+
+
+TOO_MANY_EWSR_ERROR = """
+Too many EWSR fractions listed, there must be
+            (1 + CONFIGURATION[\"Maximum L\"]) = {0:d}
+EWSR fractions listed in the variable CONFIGURATION[\"EWSR Fractions\"],
+            {1:d} were given"""
+
+
+TOO_FEW_EWSR_ERROR = """
+Too few EWSR fractions listed, there must be
+            (1 + CONFIGURATION[\"Maximum L\"]) = {0:d}
+EWSR fractions listed in the variable CONFIGURATION[\"EWSR Fractions\"],
+            {1:d} were given"""
+
+
+NUM_STARTS_ERROR = """
+You must provide enough starting points such that there are at
+least {0:d} points (the number of start points is the length of each start list
+multiplied together)"""
+
+
+NUM_STARTS_MULT_ERROR = """
+The product
+(CONFIG["Sample Points"]-CONFIG["Burn-in Points"])*CONFIG["Number of Walkers"])
+must be a multiple of {0:d}"""
 
 
 if __name__ == "__main__":
