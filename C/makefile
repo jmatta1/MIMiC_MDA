@@ -1,5 +1,5 @@
 
-FLAGS=-O2 -fstrict-aliasing -Wall -msse -msse2 -msse3 -msse4 -mavx
+FLAGS=-O3 -fstrict-aliasing -Wall -std=gnu99
 LIB_FLAGS= -ftree-vectorize -shared -fPIC #-Bsymbolic-functions -Wl,-z,now
 EXEC_FLAGS=-L./ -Wl,-rpath=./ #,-z,now
 
@@ -23,7 +23,7 @@ tester: ChiSqTester.c libChiSq.so ChiSquare.c ChiSquare.h
 	@echo ""
 	@echo "Building tester for shared library"
 	@echo ""
-	gcc $(EXEC_FLAGS) $(FLAGS) ChiSqTester.c -o tester -lChiSq
+	gcc $(EXEC_FLAGS) $(FLAGS) ChiSqTester.c -o tester -lChiSq -lrt
 	@echo ""
 
 libChiSq.so: ChiSquare.c ChiSquare.h
@@ -37,4 +37,3 @@ libChiSq.so: ChiSquare.c ChiSquare.h
 clean:
 	-rm libChiSq.so
 	-rm tester
-
