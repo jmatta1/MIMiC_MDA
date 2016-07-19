@@ -37,4 +37,3 @@ libChiSq.so: ChiSquare.c ChiSquare.h
 clean:
 	-rm libChiSq.so
 	-rm tester
-
