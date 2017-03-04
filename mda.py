@@ -780,11 +780,18 @@ def randomize_position(gen, ndims):
         The set of parameters for the best fit
     """
     # make an array of randomizers, normally distributed around zero
-    rands = CONFIG["Sample Spread"]*np.random.standard_normal(ndims)
+    rands = CONFIG["Sample Spread"] * np.random.standard_normal(ndims)
     # convert them to fractions of the original value
     randomizer = (np.ones((ndims), dtype=np.float64) - rands)
+    # generate the randomized offsets
+    base_offsets = (CONFIG["Sample Offset Width"]
+                    * np.random.standard_normal(ndims))
+    # move the offsets to the appropriate centroid
+    offsets = ((CONFIG["Sample Offset Centroid"]
+                * np.ones((ndims), dtype=np.float64))
+               + base_offsets)
     # make the randomized positions
-    position = (gen*randomizer)
+    position = (gen*randomizer + offsets)
     # now if any of the positions are negative set them to zero
     for i in range(ndims):
         if position[i] < 0.0:
