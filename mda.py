@@ -974,7 +974,31 @@ def interpolate_dist(dist, angles, errors):
 
 def read_dist(energy, l_value):
     """This function reads the distribution described by the passed parameters
-    from disk into an np array"""
+    from disk into an np array
+
+    Parameters
+    ----------
+    energy: float
+        excitation energy of the giant resonance dwba anglar distribution to be
+        read in by this function
+
+    l_value: int
+        orbital angular momentum of the giant resonance dwba angular
+        distribution to be read in by this function
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Distribution Directory', 'Target A', and
+        'EWSR Fractions' keys in the dictionary
+
+    Returns
+    -------
+    gr_dwba_dist: numpy array
+        numpy array with shape Nx2 where N is the number of data points in the
+        dwba angular distribution which is in the format (angle, dwba_cs)
+    """
     # first construct the file name
     dist_file_name = "{0:s}A{1:d}_Ex{2:4.2f}_L{3:02d}_T0_F{4:03d}.csv".format(
         CONFIG["Distribution Directory"], CONFIG["Target A"], energy, l_value,
@@ -993,7 +1017,40 @@ def handle_ivgdr(data):
     then this function returns None, None, and a deep copy of the exp data
     that was passed to it, otherwise it returns a list of distributions,
     ewsr fractions and the experimental data minus the interpolated IVGDR data
-    times the ewsr fraction"""
+    times the ewsr fraction
+
+    Parameters
+    ----------
+    data : list of lists
+        the first element of the list is the excitation energy of that dataset,
+        the second element is a numpy containing the dataset in the format
+        (angle, cs, cs-err)
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Subtract IVGDR', 'IVGDR Height', 'IVGDR Center',
+        'IVGDR Width', and 'IVGDR CS Integral' keys in the dictionary
+
+    Returns
+    -------
+    dists: list of numpy arrays
+        these arrays containing the IVGDR distributions at each excitation
+        energy that there is data for. If CONFIG["Subtract IVGDR"] is false,
+        this is set to None
+
+    ewsrs: list of floats
+        each float is the fraction of strength of the IVGDR at the
+        corresponding excitation energy in data list. If
+        CONFIG["Subtract IVGDR"] is false, this is set to None
+
+    sub_data: list of lists
+        same format as the input parameter data, except that each cross-section
+        has been reduced by the inerpolated and ewsr-scaled IVGDR cross-section
+        at that angle and excitation energy. If CONFIG["Subtract IVGDR"] is
+        false, this is merely a deep copy of the input data
+    """
     # if needed handle the ivgdr
     if CONFIG["Subtract IVGDR"]:
         frac = IVGDRFraction(CONFIG["IVGDR Height"], CONFIG["IVGDR Center"],
@@ -1022,14 +1079,54 @@ def handle_ivgdr(data):
 def interpolate_and_scale_ivgdr(dist, ewsr, angle_list):
     """This function takes an ivgdr distribution, interpolates it, calculates
     the values of the distribution at the provided angles, multiplies them by
-    ewsr and returns it"""
+    ewsr and returns it
+
+    Parameters
+    ----------
+    dist : numpy array (Nx2)
+        array containing the IVGDR angular distribution in the format angle,
+        cross-section
+
+    ewsr : float
+        fraction of the IVGDR strength present at that energy
+
+    angle_list : list of floats
+        list of angles at which there are data points for this energy
+
+    Returns
+    -------
+    scaled_cross-sections: numpy array of floats
+        A list of the calculated IVGDR cross-sections for the given angles
+        scaled to the appropriate EWSR fraction
+    """
     interp = interpolate.interp1d(dist[:, 0], dist[:, 1], kind="cubic")
     values = interp(angle_list)
     return ewsr*values
 
 
 def read_ivgdr_dists(en_list):
-    """reads in the csv files with the IVGDR distributions"""
+    """reads in the csv files with the IVGDR distributions
+
+    Parameters
+    ----------
+    en_list : list
+        list of excitation energies (in MeV) whose IVGDR distributions need
+        to be read in
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Distribution Directory' and 'Target A' keys in the
+        dictionary
+
+    Returns
+    -------
+    dists_list : list
+        A list of distributions numpy arrays with dimensions Nx2 where N is the
+        number of points in a distribution. The order of the arrays is
+        identical to the ordering of energies in the passed en_list
+    """
     dist_file_names = \
         ["{0:s}A{1:d}_Ex{2:4.2f}_L01_T1_F100.csv".format(
             CONFIG["Distribution Directory"], CONFIG["Target A"], energy)
@@ -1046,7 +1143,22 @@ def read_ivgdr_dists(en_list):
 # This class allows the calculation of IVGDR fractions easily
 class IVGDRFraction(object):
     """Object to hold the information needed to calculate a lorentzian divided
-    by its integral"""
+    by its integral
+    
+    Parameters
+    ----------
+    max_sigma: float
+        The height (in millibarns) of the lorentzian 
+
+    centroid: float
+        The centroid energy (in MeV) of the Lorentzian
+
+    width: float
+        The width (in MeV) of the Lorentzian
+
+    total_sigma: float
+        The integral from 0 to infinity of the lorentizian in millibarns
+    """
     # pythonic constructor!
     def __init__(self, max_sigma, centroid, width, total_sigma):
         # to simplify the calculation of the lorentzian we dont store max_sigma
@@ -1065,13 +1177,35 @@ class IVGDRFraction(object):
         self.denom_inv = math.pow(centroid, 4.0)/self.width_sq
 
     def get_ivgdr_fraction(self, excitation_energy):
-        """returns the IVGDR EWSR % at energy = excitation_energy"""
+        """returns the IVGDR EWSR % at energy = excitation_energy
+
+        Parameters
+        ----------
+        excitation_energy: float
+            The energy to calculate the value of the IVGDR fraction at
+
+        Returns
+        -------
+        ivgdr_percentage: float
+            The fraction of the ivgdr strength present at that energy
+        """
         en_sq = math.pow(excitation_energy, 2.0)
         denom = self.denom_const + self.denom_inv/en_sq + en_sq/self.width_sq
         return self.sig_ratio/denom
 
     def get_ivgdr_cs(self, excitation_energy):
-        """returns the IVGDR total cs at energy = excitation_energy"""
+        """returns the IVGDR total cs at energy = excitation_energy
+
+        Parameters
+        ----------
+        excitation_energy: float
+            The energy to calculate the value of the IVGDR fraction at
+
+        Returns
+        -------
+        ivgdr_cs: float
+            The cross-section at that energy (d_sigma/d_Energy)
+        """
         en_sq = math.pow(excitation_energy, 2.0)
         denom = self.denom_const + self.denom_inv/en_sq + en_sq/self.width_sq
         return (self.total * self.sig_ratio) / denom
@@ -1079,7 +1213,36 @@ class IVGDRFraction(object):
 
 def read_row_cs_data_file():
     """takes a cross-section file in row format and extracts the data,
-    points with angle above max_angle are excluded"""
+    points with angle above max_angle are excluded
+    
+    Parameters
+    ----------
+    
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Input File Path', 'Final Energy', 'Start Energy',
+        and 'Max Theta' keys in the dictionary
+    
+    Returns
+    -------
+    fit_output: list of lists
+        each sub list contains the excitation energy of the data as the first
+        element. The second element is a numpy array with dimensions Nx3, where
+        N is the number of data points. Each contains the angle, the cross-
+        section and the statistical error in the cross-section, the points in
+        this array are limited to only those with angle less than
+        CONFIG["Max Theta"]
+
+    plot_output: list of lists
+        each sub list contains the excitation energy of the data as the first
+        element. The second element is a numpy array with dimensions Nx3, where
+        N is the number of data points. Each contains the angle, the cross-
+        section and the statistical error in the cross-section, all of the data
+        read in is contained in this array, not just the data with small enough
+        theta
+    """
     # open the csv file
     input_file = open(CONFIG["Input File Path"], 'r')
     fit_output = []
