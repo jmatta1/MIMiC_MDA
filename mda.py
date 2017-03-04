@@ -555,7 +555,33 @@ def gen_fit_dists(params, dists):
 def fit_and_mcmc(data_tuple):
     """This function is the workhorse function, it loads the shared library,
     generates the structure, performs the BFGS fit from each starting point
-    and then performs the MCMC using those fits"""
+    and then performs the MCMC using those fits
+
+    Parameters
+    ----------
+    data_tuple : tuple
+        The first element of the tuple is the energy the mcmc is being
+        performed on, the second element of the tuple is the experimental data,
+        the third element of the tuple is the interpolated distributions to
+        use, the final element of the tuple is the set of start point for the
+        initial fitting
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Shared Lib Path', 'Number Walker Generators',
+        'EWSR Fractions', 'Number of Walkers', and 'Sample Points' keys
+
+    Returns
+    -------
+    values : list of lists
+        The first sub list contains the parameters and their errors as
+        extracted via the pure quantiles method, the second sublist is the
+        parameters and their errors as extracted by the peak finding then
+        quantiles method, this is the output as yielded by the
+        perform_sample_manips function
+    """
     # first unpack the tuple
     energy = data_tuple[0]
     fit_data = data_tuple[1]
@@ -600,7 +626,36 @@ def fit_and_mcmc(data_tuple):
 def perform_sample_manips(sampler, ndims, energy):
     """this function takes the mcmc sampler, grabs the chains from it, and
     generates plots and percentiles and most likely values from the sampled
-    points"""
+    points
+
+    Parameters
+    ----------
+    sampler : mcmc ensemble sampler from emcee
+        the ensemble sampler used to perform the mcmc
+
+    ndims : int
+        The number of parameters that were sampled
+
+    energy : float
+        the excitation energy that this mcmc was carried out for
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Number of Walkers', 'Sample Points',
+        'Burn-in Points', 'Save Chain Data', 'Chain Directory', 'Target A',
+        'Confidence Interval', 'Generate Corner Plots', 'Corner Plot Samples',
+        'Corner Plots Directory', and 'Plot Format' keys
+
+    Returns
+    -------
+    values : list of lists
+        The first sub list contains the parameters and their errors as
+        extracted via the pure quantiles method, the second sublist is the
+        parameters and their errors as extracted by the peak finding then
+        quantiles method
+    """
     # retrieve the samples
     num_samples = (CONFIG["Number of Walkers"] * (CONFIG["Sample Points"] -
                                                   CONFIG["Burn-in Points"]))
@@ -661,7 +716,34 @@ def perform_sample_manips(sampler, ndims, energy):
 
 def calc_param_values(samples, quantile_list, ndims):
     """This function calculates the parameter values and error bars using both
-    peak finding and percentiles"""
+    peak finding and percentiles
+
+    Parameters
+    ----------
+    samples : numpy array
+        the full set of parameter samples from the MCMC
+
+    quantile_list : numpy array
+        An array with the quantiles for lower error bar, value, and high error
+        bar, where value is 0.5 and if you want ~1sigma error bars the low and
+        high would be 0.16 and 0.84 respectively
+
+    ndims : int
+        the number of parameters
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    points : list
+        A list of the parameter values and their errors derived only from
+        the quantiles
+
+    peaks : list
+        A list of the parameter values and their errors derived from finding
+        the distribution peak
+    """
     points = [(v[1], v[2]-v[1], v[1]-v[0]) for v in
               zip(*np.percentile(samples, (100.0*quantile_list), axis=0))]
     peaks = find_most_likely_values(samples, ndims)
