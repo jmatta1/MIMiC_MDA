@@ -371,7 +371,30 @@ def find_y_extrema(data_max, dists, xmax):
     """This function scans the distributions provided searching for the minimum
     value with angle less than xmax, it also looks to find the maximum value
     (be it in a distribution or the data maximum it then returns
-    (10^(floor(log(ymin))), 10^(ceiling(log(ymax)))"""
+    (10^(floor(log(ymin))), 10^(ceiling(log(ymax)))
+
+    Parameters
+    ----------
+    data_max : float
+        The maximum cross-section in the experimental data
+
+    dists : list of numpy arrays
+        The set of distributions for this MCMC
+
+    xmax : float
+        the maximum angle that will be plotted
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    plot_min : float
+        A suggested minimum value for plot y axes
+
+    plot_max : float
+        A suggested maximum value for plot y axes
+    """
     current_min = 100000000000.0
     current_max = data_max
     for dist in dists:
@@ -389,7 +412,40 @@ def find_y_extrema(data_max, dists, xmax):
 
 def write_fits(data, dists, parameters, ivgdr_info):
     """This function takes the parameters, distributions, and data, and writes
-    them to a nicely formatted csv file for usage later"""
+    them to a nicely formatted csv file for usage later
+
+    Parameters
+    ----------
+    data : list of lists
+        Each element of the list is one MCMC run, each sublist has the ex
+        energy as the first element, the set of experimental data points as the
+        second element
+
+    dists : list of lists
+        Each sub list contains the numpy arrays with dwba distributions for one
+        run of the MCMC
+
+    parameters : list of lists
+        Each sub list contains two lists. The first list in the sublist is the
+        parameters and their errors as derived from the pure percentile method,
+        the second is the parameters and their errors as derived from the peak
+        method
+
+    ivgdr_info : list of lists
+        Each sub list is from one run and contains the following: the IVGDR
+        distribution as its first element, and the ivgdr EWSR weight as its
+        second
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Subtract IVGDR', 'Fit Csv Dirs', and 'Target A'
+        keys
+
+    Returns
+    -------
+    """
     # first split the data up into individual runs
     for i in range(len(data)):
         energy = copy.deepcopy(data[i][0])
@@ -416,7 +472,32 @@ def write_fits(data, dists, parameters, ivgdr_info):
 def write_fit_csv(path, points, pset, dist_set, energy):
     """This function takes a file path, a set of experimental data, a parameter
     set, a set of distributions and the ex energy of the distribution and
-    writes a nicely formated csv file with all the information in it"""
+    writes a nicely formated csv file with all the information in it
+
+    Parameters
+    ----------
+    path : string
+        the path to the file that will hold this csv data
+
+    points : list of floats
+        the experimental data the MCMC was performed on
+
+    pset : list of floats
+        the parameter set and their errs (be it from peak finding or quantiles)
+
+    dist_set : list of numpy arrays
+        The set of dwba distributions that were scaled and fit to the exp data
+        when the MCMC was performed
+
+    energy : float
+        The excitation energy of the nucleus that the MCMC was run for
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    """
     # first open the file to be written
     out_file = open(path, 'w')
     # next generate the title and column headings for the file
@@ -461,7 +542,24 @@ def write_fit_csv(path, points, pset, dist_set, energy):
 
 
 def append_data_column_to_fit_csv(data, csv_list):
-    """This function takes a column of data and appends it to the csv list"""
+    """This function takes a column of data and appends it to the csv list
+
+    Parameters
+    ----------
+    data : list of floats
+        the set of data, be it angles, distribution values, etc to append to
+        the ends of the csv lines
+
+    csv_list : list of strings
+        The list of strings that when complete and written to a file produces
+        a csv with the appropriate formatting
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    """
     for i in range(len(csv_list)):
         if i < len(data):
             csv_list[i] += ("%f, " % data[i])
@@ -470,7 +568,23 @@ def append_data_column_to_fit_csv(data, csv_list):
 
 
 def append_parameters_to_fit_csv(pset, csv_list):
-    """This function appends a parameter set to the csv list"""
+    """This function appends a parameter set to the csv list
+
+    Parameters
+    ----------
+    pset : list of floats
+        the parameter set to append to the lines of the fit csv
+
+    csv_list : list of strings
+        The list of strings that when complete and written to a file produces
+        a csv with the appropriate formatting
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    """
     # first generate the list of names
     name_list = []
     for i in range(len(pset)):
@@ -488,14 +602,47 @@ def append_parameters_to_fit_csv(pset, csv_list):
 
 
 def append_str_to_fit_csv(str_to_append, csv_list):
-    """This function appends the given string to the csv_list"""
+    """This function appends the given string to the csv_list
+
+    Parameters
+    ----------
+    str_to_append : string
+        the string to append to every string in the csv_list
+
+    csv_list : list of strings
+        The list of strings that when complete and written to a file produces
+        a csv with the appropriate formatting
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    """
     for i in range(len(csv_list)):
         csv_list[i] += str_to_append
 
 
 def append_exp_data_to_fit_csv(points, csv_list):
     """This function takes an experimental data set and the csv list and writes
-    the data to the csv list along with a set of appropriately blank lines"""
+    the data to the csv list along with a set of appropriately blank lines
+
+    Parameters
+    ----------
+    points : list of floats
+        the list of angles, data, and erroros to be appended to each of the
+        lines in csv_list
+
+    csv_list : list of strings
+        The list of strings that when complete and written to a file produces
+        a csv with the appropriate formatting
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    """
     for i in range(len(csv_list)):
         if i < len(points):
             csv_list[i] += ("%f, %f, %f, " % (points[i][0], points[i][1],
@@ -506,7 +653,25 @@ def append_exp_data_to_fit_csv(points, csv_list):
 
 def gen_csv_title_and_headings(energy):
     """This function takes the excitation energy and returns a string with the
-    csv title, and column headings"""
+    csv title, and column headings
+
+    Parameters
+    ----------
+    energy : float
+        The excitation energy at which this decomposition was performed
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Maximum L' key
+
+    Returns
+    -------
+    out_str : string
+        The string wth the first few header lines of the csv file output
+        
+    """
     # first generate the title string
     out_str = "Fit Information for Ex =, %4.1f\n" % energy
     # now generate the two rows of column headings
@@ -533,7 +698,27 @@ def gen_csv_title_and_headings(energy):
 def gen_fit_dists(params, dists):
     """This function, takes a parameter set and a set of distributions, it then
     scales the distributions by the appropriate parameters and returns the
-    scaled distributions"""
+    scaled distributions
+
+    Parameters
+    ----------
+    params : list
+        This is the parameter set to be used to scale the dwba distributions
+
+    dists : list of numpy arrays
+        This is the list of dwba distributions to be scaled
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    output : list of lists
+        array of NxP size where N is the number of points in the distribution
+        and P is the number of distributions used in the MCMC plus two, then
+        column 0 is the list of angles, column 1 is the sum of the scaled
+        distributions and columns 2 through P-1 are the scaled distributions
+    """
     # first scale all the passed distributions
     sc_dists = copy.deepcopy(dists)
     for (param, dist) in zip(params, sc_dists):
