@@ -214,17 +214,17 @@ def write_param_sets(parameters, energy_set):
     perc_path += ("A%d_percentile_parameters.csv" % CONFIG["Target A"])
     peak_path += ("A%d_peak_parameters.csv" % CONFIG["Target A"])
     # now call the function that writes a parameter set
-    write_horizontal_param_file(perc_path, perc_data, energy_set)
-    write_horizontal_param_file(peak_path, peak_data, energy_set)
+    write_horizontal_param_file(perc_path, perc_data, energy_set, "percentile")
+    write_horizontal_param_file(peak_path, peak_data, energy_set, "peak find")
 
 
-def write_horizontal_param_file(path, params, energy_set):
+def write_horizontal_param_file(path, params, energy_set, ptype):
     """This function takes a set of parameters and their corresponding energies
     and writes the data to the specified path"""
     # open the file for writing
     out_file = open(path, 'w')
     # write the header
-    out_file.write(generate_param_file_header())
+    out_file.write(generate_param_file_header(ptype))
     # write each line of parameters and energies
     for i in range(len(params)):
         out_file.write(gen_param_file_line(energy_set[i], params[i]))
@@ -242,10 +242,28 @@ def gen_param_file_line(energy, params):
     return out_str
 
 
-def generate_param_file_header():
+def generate_param_file_header(ptype):
     """This function uses config information to generate an appropriate header
-    for the parameter file"""
-    out_str = "MDA parameters extracted with percentile techniques\n"
+    for the parameter file
+
+    Parameters
+    ----------
+    ptype : string
+        The type of fit used to extract the parameter values
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Maximum L' key
+
+    Returns
+    -------
+    out_str : string
+        Header for the CSV file that will be output for the summary of param
+        values
+    """
+    out_str = "MDA parameters extracted with %s techniques\n" % ptype
     hrow1 = "Excitation, , "
     hrow2 = "Energy, , "
     for i in range((CONFIG["Maximum L"]+1)):
@@ -260,7 +278,33 @@ def generate_param_file_header():
 
 def make_fit_plots(data, dists, parameters, ivgdr_info):
     """This function takes everything and generates the plots for individual
-    fits at each energy"""
+    fits at each energy
+
+    Parameters
+    ----------
+    data : list of lists
+        List of excitation energies and associated experimental data for each
+        run
+
+    dists : list of lists of numpy arrays
+        List of DWBA distributions for each run
+
+    parameters : list of lists of floats
+        List of parameter sets derived with both methods for each run
+
+    ivgdr_info : list of lists
+        List of IVGDR distributions and ewsr fractions for each run
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Subtract IVGDR', 'Fit Plot Dirs', 'Target A',
+        'Plot Format', 'Fit Plot L Limit', and 'Plot IVGDR in Fits' keys
+
+    Returns
+    -------
+    """
     # first make the directory names
     legend = [r"$Fit$"]
     for i in range(len(parameters[0][0])):
@@ -313,7 +357,24 @@ def gen_param_sets_for_fit_plot(params):
     """This function takes a single set of parameters and generates three sets
     of parameters, the first, decreased by the lower error bar, the second
     equal to the parameter fit value, and the third, increased by the upper
-    error bar"""
+    error bar
+
+    Parameters
+    ----------
+    params : list of tuples
+        This is the list of parameter values of their errors bars, either
+        derived from the peak method or the quantile method
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    parameter_bounds : list of tuples
+        This is a list of three parameter sets, the first is all params reduced
+        by one error bar, the second is the params, the third is the params
+        increased by one error bar
+    """
     temp = [[(vals[0] - vals[2]) for vals in params],
             [vals[0] for vals in params],
             [(vals[0] + vals[1]) for vals in params]]
@@ -330,7 +391,31 @@ def gen_param_sets_for_fit_plot(params):
 def gen_fit_plot(points, energy, dists, legends, plot_name):
     """This function takes the list of points with errors in the points var
     and the list of distributions to plot in the dists var and generates a
-    nicely formatted matplotlib plot displaying them"""
+    nicely formatted matplotlib plot displaying them
+
+    Parameters
+    ----------
+    points : list of floats
+        Experimental data for one energy
+
+    energy : float
+        Excitation energy of the data
+
+    dists : list of numpy arrays
+        List of dwba distributions
+
+    legends : list of strings
+        List of names of the points and distributions
+
+    plot_name : string
+        output path of the plot
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    """
     # since the first distribution is always the plot then the first style will
     # always be a solid red line, no other distribution is red and solid
     line_styles = ["r-", "b--", "g-.", "c:", "m--", "y-.", "b:", "g--", "c-.",
