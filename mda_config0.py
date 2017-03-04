@@ -134,9 +134,9 @@ CONFIG["Number Walker Generators"] = 20
 # Spread of the initial sampling positions for walkers
 CONFIG["Sample Spread"] = 0.15
 # Centroid of the offset applied to sampling positions for walkers
-CONFIG["Sample Offset Centroid"] = 0.02  # incomplete
+CONFIG["Sample Offset Centroid"] = 0.02
 # Width of the offset applied to the sampling positions for walkers
-CONFIG["Sample Offset Width"] = 0.01  # incomplete
+CONFIG["Sample Offset Width"] = 0.01
 # Number of points at the beginning of the Markov Chain to discard as 'burn in'
 # should be about one auto-correllation time
 CONFIG["Burn-in Points"] = 50
