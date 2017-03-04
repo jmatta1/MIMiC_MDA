@@ -789,14 +789,60 @@ def do_init_fit(start, struct, cs_lib):
 
 
 def call_chi_sq(params, cs_lib, struct):
-    """calls the chi^2 function in cs_lib"""
+    """calls the chi^2 function in cs_libParameters
+    ----------
+    params : numpy array
+        numpy array containing the parameters [a0 to aN] where N is the Max L
+        to be fit
+
+    cs_lib : ct.cdll.LoadLibrary object
+        This is the object representing the loaded dll containing the fast c
+        routines
+
+    struct : ctypes.void_ptr
+        pointer to struct needed by calculation functions
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    chi^2 : float
+        The chi^2 of teh data given the data and distributions in the struct
+        and the parameters passed to calculateChi
+    """
     temp = cs_lib.calculateChi(struct, params.ctypes.data)
     return temp
 
 
 def make_calc_struct(cs_lib, data, dists):
     """This function takes the data and distributions and dumps the information
-    into a freshly created struct"""
+    into a freshly created struct
+
+    Parameters
+    ----------
+    cs_lib : ct.cdll.LoadLibrary object
+        This is the object representing the loaded dll containing the fast c
+        routines
+
+    data : numpy array
+        this is the array of experimental data, scaled by errors, that the dll
+        will calculate chi^2 values with
+
+    dists : list of numpy arrays
+        this is the array of interpolated distributions that have been divided
+        by the experimental errors
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    out_struct : ctypes.void_ptr
+        While it is listed as a void pointer this is a pointer to the data
+        needed by the dll library routines to perform the log likelihood
+        calculations
+    """
     # make a struct
     out_struct = cs_lib.makeMdaStruct(len(data), len(dists))
     # load it with the data
@@ -811,7 +857,24 @@ def make_calc_struct(cs_lib, data, dists):
 
 def generate_output_dirs():
     """This function checks for the existence of the directories output is to
-    be placed in, if they do not exist, they are created"""
+    be placed in, if they do not exist, they are created
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Corner Plots Directory', 'Prob Plots Directory',
+        'Chain Directory', and 'Parameter Files Directory' keys
+
+    Returns
+    -------
+    """
+    # test / create the directory for the output file
+    if not os.path.exists(CONFIG["Parameter Files Directory"]):
+        os.makedirs(CONFIG["Parameter Files Directory"])
     # test / create the directories for csv files with individial fits
     make_config_fit_csv_dirs()
     # test / create the directories for fit plots
@@ -827,13 +890,24 @@ def generate_output_dirs():
         os.makedirs(CONFIG["Chain Directory"])
     # test / create the directory for Parameter Plots
     make_config_param_plot_dirs()
-    # test / create the directory for the output file
-    if not os.path.exists(CONFIG["Parameter Files Directory"]):
-        os.makedirs(CONFIG["Parameter Files Directory"])
 
 
 def make_config_param_plot_dirs():
-    """This function makes the parameter plot directories"""
+    """This function makes the parameter plot directories
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Parameter Plots Directory' key and creates (and
+        uses) the "Param Plot Dirs' key
+
+    Returns
+    -------
+    """
     temp = CONFIG["Parameter Plots Directory"]
     CONFIG["Param Plot Dirs"] = [copy.deepcopy(temp) for _ in range(2)]
     if temp[-1] != "/":
@@ -848,7 +922,21 @@ def make_config_param_plot_dirs():
 
 def make_config_fit_plot_dirs():
     """This function encapsulates the annoying task of making all the sub dir
-    names for holding fit plots"""
+    names for holding fit plots
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Fit Plots Directory' key and creates (and uses)
+        the "Fit Plot Dirs' key
+
+    Returns
+    -------
+    """
     temp = CONFIG["Fit Plots Directory"]
     CONFIG["Fit Plot Dirs"] = [copy.deepcopy(temp) for _ in range(12)]
     if temp[-1] != '/':
@@ -880,7 +968,21 @@ def make_config_fit_plot_dirs():
 
 def make_config_fit_csv_dirs():
     """This function takes the configuration information and generates the two
-    folders that will hold the fit csv files"""
+    folders that will hold the fit csv files
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Fits Csv Directory' key and creates (and uses)
+        the "Fit Csv Dirs' key
+
+    Returns
+    -------
+    """
     CONFIG["Fit Csv Dirs"] = [copy.deepcopy(CONFIG["Fits Csv Directory"]),
                               copy.deepcopy(CONFIG["Fits Csv Directory"])]
     if CONFIG["Fits Csv Directory"][-1] != "/":
@@ -895,7 +997,24 @@ def make_config_fit_csv_dirs():
 
 def calc_start_params():
     """This function uses the config data to generate a list of starting
-    points for the initial fits performed before the MCMC"""
+    points for the initial fits performed before the MCMC
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Start Pts a%d' key where %d is some integer from 0
+        to Maximum L, it also uses the 'Maximum L' key
+
+    Returns
+    -------
+    start_list: list of lists
+        Here each sub list is a set of starting values for all the parameters
+        in the fit
+    """
     # first load the sets into an array
     sl_list = []
     for i in range(CONFIG["Maximum L"]+1):
@@ -938,6 +1057,9 @@ def increment_ind(ind, lens):
     lens : list of ints
         the list of lengths of each dimension of the arrays
 
+    Global Parameters
+    -----------------
+
     Returns
     -------
     """
@@ -968,6 +1090,9 @@ def interp_all_dists(dists, data):
         the first element of the list is the excitation energy of that dataset,
         the second element is a numpy containing the dataset in the format
         (angle, cs, cs-err)
+
+    Global Parameters
+    -----------------
 
     Returns
     -------
@@ -1015,6 +1140,9 @@ def interpolate_dist(dist, angles, errors):
     errors: numpy array or list
         Array of errors for the data at the angles given
 
+    Global Parameters
+    -----------------
+
     Returns
     -------
     scaled_interpolated_dist: numpy array
@@ -1047,6 +1175,9 @@ def read_dist(energy, l_value):
         This uses the CONFIG global dictionary that was read in at program
         start. It uses the 'Distribution Directory', 'Target A', and
         'EWSR Fractions' keys in the dictionary
+
+    Global Parameters
+    -----------------
 
     Returns
     -------
@@ -1148,6 +1279,9 @@ def interpolate_and_scale_ivgdr(dist, ewsr, angle_list):
     angle_list : list of floats
         list of angles at which there are data points for this energy
 
+    Global Parameters
+    -----------------
+
     Returns
     -------
     scaled_cross-sections: numpy array of floats
@@ -1213,6 +1347,12 @@ class IVGDRFraction(object):
 
     total_sigma: float
         The integral from 0 to infinity of the lorentizian in millibarns
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
     """
     # pythonic constructor!
     def __init__(self, max_sigma, centroid, width, total_sigma):
@@ -1239,6 +1379,9 @@ class IVGDRFraction(object):
         excitation_energy: float
             The energy to calculate the value of the IVGDR fraction at
 
+        Global Parameters
+        -----------------
+
         Returns
         -------
         ivgdr_percentage: float
@@ -1255,6 +1398,9 @@ class IVGDRFraction(object):
         ----------
         excitation_energy: float
             The energy to calculate the value of the IVGDR fraction at
+
+        Global Parameters
+        -----------------
 
         Returns
         -------
