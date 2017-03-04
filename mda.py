@@ -926,7 +926,21 @@ def calc_start_params():
 
 def increment_ind(ind, lens):
     """This function takes a list of indices and lengths and increments the
-    highest indice, resetting to zero as needed"""
+    highest indice, resetting to zero as needed
+
+    Parameters
+    ----------
+    ind : list of ints
+        this is a list of indices that needs the lowest one to be incremented
+        (with propogation of that increment through the higher order indices
+        if the increment pushes the index past a boundary)
+
+    lens : list of ints
+        the list of lengths of each dimension of the arrays
+
+    Returns
+    -------
+    """
     start = len(ind)-1
     for i in range(start, -1, -1):
         if (ind[i] + 1) < lens[i]:
@@ -940,7 +954,29 @@ def interp_all_dists(dists, data):
     """this function takes the grand list of distributions and the experimental
     data and calls another function to interpolate the distributions with the
     exp angles and divide the interpolated distributions by the appropriate
-    error for each point"""
+    error for each point
+
+    Parameters
+    ----------
+    dists: list of lists of numpy arrays
+        each sub list contains each of the dwba distributions for a given
+        excitation energy with the index of the numpy array in the sub list
+        corresponding to its L-Value. The index of the sub lists corresponds to
+        the excitation energy of the data at the same index
+
+    data: list of lists
+        the first element of the list is the excitation energy of that dataset,
+        the second element is a numpy containing the dataset in the format
+        (angle, cs, cs-err)
+
+    Returns
+    -------
+    output: list of lists of numpy arrays
+        similar to dists in ordering and indexing, however the numpy arrays now
+        only contain the values of the input dwba distribution interpolated
+        to the angles at which there is data and divided by the error in the
+        data
+    """
     # first make the output variable
     output = []
     # now iterate across the energies
@@ -965,7 +1001,26 @@ def interp_all_dists(dists, data):
 def interpolate_dist(dist, angles, errors):
     """this function takes a distribution, a list of exp angles, and a list of
     exp error at each angle, it then interpolates the distribution at that
-    angle and divides that value by the exp error at that angle"""
+    angle and divides that value by the exp error at that angle
+
+    Parameters
+    ----------
+    dist: numpy array
+        Nx2 array of the read in giant resonance DWBA distribution with the
+        format (angle, cs)
+
+    angles: numpy array or list
+        Array of angles at which the distributions need to be interpolated
+
+    errors: numpy array or list
+        Array of errors for the data at the angles given
+
+    Returns
+    -------
+    scaled_interpolated_dist: numpy array
+        Array of the distribution values at the provided angles, scaled by the
+        inverse of the errors at those points
+    """
     # construct the interpolation
     interp = interpolate.interp1d(dist[:, 0], dist[:, 1], kind="cubic")
     # get the interpolated values divided by the errors and return them
