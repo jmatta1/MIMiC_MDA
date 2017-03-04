@@ -754,7 +754,31 @@ def gen_walker_starts(gens):
 
 
 def randomize_position(gen, ndims):
-    """This function takes a generator position and suitable randomizes it"""
+    """This function takes a generator position and suitably randomizes it
+
+    Parameters
+    ----------
+    gen : numpy array
+        initial list of parameters to be randomized
+
+    ndims : int
+        number of parameters to be randomized
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Sample Spread', 'Sample Offset Centroid', and
+        'Sample Offset Width' keys
+
+    Returns
+    -------
+    min_chi^2 : float
+        The chi^2 at the best fit point
+
+    best_fit_params : numpy array
+        The set of parameters for the best fit
+    """
     # make an array of randomizers, normally distributed around zero
     rands = CONFIG["Sample Spread"]*np.random.standard_normal(ndims)
     # convert them to fractions of the original value
@@ -769,7 +793,35 @@ def randomize_position(gen, ndims):
 
 
 def do_init_fit(start, struct, cs_lib):
-    """Performs a fit from the given starting point"""
+    """Performs a fit from the given starting point
+
+    Parameters
+    ----------
+    start : numpy array
+        numpy array containing the start parameters set [a0 to aN] where N is
+        the Max L
+
+    struct : ctypes.void_ptr
+        pointer to struct needed by calculation functions
+
+    cs_lib : ct.cdll.LoadLibrary object
+        This is the object representing the loaded dll containing the fast c
+        routines
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'EWSR Fractions', and 'Forced Extra Fits' keys
+
+    Returns
+    -------
+    min_chi^2 : float
+        The chi^2 at the best fit point
+
+    best_fit_params : numpy array
+        The set of parameters for the best fit
+    """
     # calculate the bounds
     bnds = [(0.0, 1.0/x) for x in CONFIG["EWSR Fractions"]]
     # print call_chi_sq(np.array(start, dtype=np.float64), cs_lib, struct)
@@ -790,6 +842,8 @@ def do_init_fit(start, struct, cs_lib):
 
 def call_chi_sq(params, cs_lib, struct):
     """calls the chi^2 function in cs_libParameters
+
+    Parameters
     ----------
     params : numpy array
         numpy array containing the parameters [a0 to aN] where N is the Max L
@@ -808,7 +862,7 @@ def call_chi_sq(params, cs_lib, struct):
     Returns
     -------
     chi^2 : float
-        The chi^2 of teh data given the data and distributions in the struct
+        The chi^2 of the data given the data and distributions in the struct
         and the parameters passed to calculateChi
     """
     temp = cs_lib.calculateChi(struct, params.ctypes.data)
