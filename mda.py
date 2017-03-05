@@ -1156,12 +1156,23 @@ def gen_time_series_plots(sampler, ndims, energy):
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
         start. It uses the 'Number of Walkers', 'Sample Points',
-        'Time Series Directory', and 'Plot Format' keys
+        'Time Plot Dirs', and 'Plot Format' keys
 
     Returns
     -------
     """
-    CONFIG["Time Plot Dirs"]
+    fmt_string = "tSeries_L{0:d}_Ex{1:4.2f}.{2:s}"
+    for i in range(CONFIG["Maximum L"]+1):
+        # make the plot name
+        fig_file_name = os.path.join(CONFIG["Time Plot Dirs"][i],
+                                     fmt_string.format(i, energy,
+                                                       CONFIG["Plot Format"]))
+        xvals = np.arange(0,CONFIG["Sample Points"])
+        fig, axes = plt.subplots()
+        for j in range(CONFIG["Walker Plot Count"]):
+            axes.plot(xvals,samples[j,:,i],color='b')
+        fig.savefig(plot_name, bbox_inches='tight')
+        plt.close(fig)
 
 
 def calc_param_values(samples, quantile_list, ndims):
