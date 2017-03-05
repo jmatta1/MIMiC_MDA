@@ -5,7 +5,24 @@ the BFGS algorithm from a variety of starting positions given in the config
 file. Then it takes those starting points, refines them and finds parameter
 errors using the Markov Chain Monte Carlo technique, specifically the python
 implementation of Goodman & Weare's Affine Invariant MCMC ensemble sampler
-which is in the emcee package"""
+which is in the emcee package
+
+This program can be invoked with:
+    ./mda.py configuration_file
+  or
+    python mda.py configuration_file
+
+Parameters
+----------
+config_file : string
+    This is the file that fills out the configuration and run details of the
+    MCMC that needs to be run. For details of what needs to be in the config
+    file, see config_example.py, which came with the repository, for more
+    information
+
+Returns
+-------
+"""
 import sys
 import multiprocessing
 import math
