@@ -38,7 +38,24 @@ PLOT_FORMAT_LIST = ["svg", "svgz", "pdf", "ps", "eps", "png"]
 
 def main():
     """performs sanity checks on the configuration data and then calls the
-    functions that do the work"""
+    functions that do the work
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Number of Threads', 'Sample Points',
+        'Burn-in Points', 'Confidence Interval', 'Number of Walkers',
+        'Maximum L', 'EWSR Fractions', 'Start Pts a%d',
+        'Number Walker Generators', and 'Plot Format', keys
+        
+
+    Returns
+    -------
+    """
     # check that the user gave sane information
     # check that they are not requesting greater concurrency than the
     # system supports
@@ -95,7 +112,20 @@ def main():
 def initialize_mda():
     """does the work of the program, reads in all the data and distributions
     subtracts all the ivgdr components if needed then calls the functions
-    that do the initial fitting and then the sampling"""
+    that do the initial fitting and then the sampling
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Maximum L', and 'Number of Threads' keys
+
+    Returns
+    -------
+    """
     # read the raw data
     (exp_data, plot_data) = read_row_cs_data_file()
     # now read and subtract the IVGDR data
@@ -145,7 +175,27 @@ def initialize_mda():
 
 def write_param_plots(parameters, energy_set):
     """This function takes the generated parameters and makes the plots for
-    each L of the parameters"""
+    each L of the parameters
+
+    Parameters
+    ----------
+    parameters : list
+        The full set of parameter sets, for all the runs, from both parameter
+        set finding methodologies
+
+    energy_set : list of floats
+        The list of excitation energies for each run
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Maximum L', 'Param Plot Dirs', 'Target A', and
+        'Plot Format' keys
+
+    Returns
+    -------
+    """
     # loop through each set of parameters
     for i in range((CONFIG["Maximum L"]+1)):
         # first split the data into the two types
@@ -165,7 +215,31 @@ def write_param_plots(parameters, energy_set):
 def make_param_plot(path, params, energy_set, l_value):
     """This takes a set of parameters for a given L, the energies they are from
     and generates a plot of those parameters. It then writes that plot to the
-    specified path"""
+    specified path
+
+    Parameters
+    ----------
+    path : string
+        The file path for this plot
+
+    params : list of floats
+        One set of parameters for each run
+
+    energy_set : list of floats
+        The list of excitation energies for each run
+
+    l_value : int
+        The orbital angular momentum of the GR this plot is for
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Float Epsilon' key
+
+    Returns
+    -------
+    """
     pt_x_vals = np.array(energy_set)
     param_array = np.array(params)
     pt_y_vals = param_array[:, 0]
@@ -201,7 +275,25 @@ def make_param_plot(path, params, energy_set, l_value):
 
 def write_param_sets(parameters, energy_set):
     """This function takes the generated parameters and writes the sets from
-    percentiles and the sets from peak find to seperate files"""
+    percentiles and the sets from peak find to seperate files
+
+    Parameters
+    ----------
+    parameters : list
+        Both types of parameter sets from each run and their associated errors
+
+    energy_set : list of floats
+        The list of excitation energies for each run
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Parameter Files Directory' and 'Target A' keys
+
+    Returns
+    -------
+    """
     # first split the data into the two types
     perc_data = [pset[0] for pset in parameters]
     peak_data = [pset[1] for pset in parameters]
@@ -220,7 +312,28 @@ def write_param_sets(parameters, energy_set):
 
 def write_horizontal_param_file(path, params, energy_set, ptype):
     """This function takes a set of parameters and their corresponding energies
-    and writes the data to the specified path"""
+    and writes the data to the specified path
+
+    Parameters
+    ----------
+    path : string
+        The file path for this csv
+
+    params : list of floats
+        A parameter set and its errors
+
+    energy_set : list of floats
+        The list of excitation energies for each run
+
+    ptype : string
+        The type of fit used to extract the parameter values
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    """
     # open the file for writing
     out_file = open(path, 'w')
     # write the header
@@ -234,7 +347,27 @@ def write_horizontal_param_file(path, params, energy_set, ptype):
 
 def gen_param_file_line(energy, params):
     """This function takes the excitation energy and the parameters for that
-    energy and generates the string to be written to the file"""
+    energy and generates the string to be written to the file
+
+    Parameters
+    ----------
+    energy : float
+        The excitation energy of the parameter set
+
+    params : list of floats
+        A parameter set and its errors
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Maximum L' key
+
+    Returns
+    -------
+    out_str : string
+        line of parameters written out in the csv format
+    """
     out_str = ("%f, , " % energy)
     for i in range((CONFIG["Maximum L"]+1)):
         out_str += ("%f, %f, %f, , " % params[i])
