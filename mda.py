@@ -1079,6 +1079,8 @@ def perform_sample_manips(sampler, ndims, energy):
     # retrieve the samples
     num_samples = (CONFIG["Number of Walkers"] * (CONFIG["Sample Points"] -
                                                   CONFIG["Burn-in Points"]))
+    gen_time_series_plots(sampler, ndims, energy)
+    # get a copy of the samples reshaped to all walkers merged together
     samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
         num_samples, ndims))
     # save the samples to the disk in the sp
@@ -1132,6 +1134,34 @@ def perform_sample_manips(sampler, ndims, energy):
         print "Done creating corner plot for", energy, "MeV"
     # return the point and the errors
     return values
+
+
+def gen_time_series_plots(sampler, ndims, energy):
+    """This function generates the time series plots of the walker parameter
+    states
+
+    Parameters
+    ----------
+    sampler : mcmc ensemble sampler from emcee
+        the ensemble sampler used to perform the mcmc
+
+    ndims : int
+        The number of parameters that were sampled
+
+    energy : float
+        the excitation energy that this mcmc was carried out for
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Number of Walkers', 'Sample Points',
+        'Time Series Directory', and 'Plot Format' keys
+
+    Returns
+    -------
+    """
+    CONFIG["Time Plot Dirs"]
 
 
 def calc_param_values(samples, quantile_list, ndims):
@@ -1545,6 +1575,36 @@ def generate_output_dirs():
         os.makedirs(CONFIG["Chain Directory"])
     # test / create the directory for Parameter Plots
     make_config_param_plot_dirs()
+    # test / create the directories for time series plots
+    make_time_series_plot_dirs()
+
+
+def make_time_series_plot_dirs():
+    """This function makes the time series plot directories
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Time Series Directory' and 'Maximum L' key and
+        it creates (and uses) the "Time Plot Dirs' key
+
+    Returns
+    -------
+    """
+    # test / create the base directory for time series
+    if not os.path.exists(CONFIG["Time Series Directory"]):
+        os.makedirs(CONFIG["Time Series Directory"])
+    # now create the sub directories for each L
+    CONFIG["Time Plot Dirs"] = []
+    for i in range(CONFIG["Maximum L"] + 1):
+        temp_dir = os.path.join(CONFIG["Time Series Directory"], "L%d"%i)
+        if not os.path.exists(temp_dir):
+            os.makedirs(temp_dir)
+        CONFIG["Time Plot Dirs"].append(temp_dir)
 
 
 def make_config_param_plot_dirs():
@@ -1564,15 +1624,11 @@ def make_config_param_plot_dirs():
     -------
     """
     temp = CONFIG["Parameter Plots Directory"]
-    CONFIG["Param Plot Dirs"] = [copy.deepcopy(temp) for _ in range(2)]
-    if temp[-1] != "/":
-        CONFIG["Param Plot Dirs"][0] += "/"
-        CONFIG["Param Plot Dirs"][1] += "/"
-    CONFIG["Param Plot Dirs"][0] += "Percentiles/"
-    CONFIG["Param Plot Dirs"][1] += "Peaks/"
-    for i in range(2):
-        if not os.path.exists(CONFIG["Param Plot Dirs"][i]):
-            os.makedirs(CONFIG["Param Plot Dirs"][i])
+    CONFIG["Param Plot Dirs"] = [os.path.join(temp, "Percentiles"),
+                                 os.path.join(temp, "Peaks")]
+    for subdir in CONFIG["Param Plot Dirs"]:
+        if not os.path.exists(subdir):
+            os.makedirs(subdir)
 
 
 def make_config_fit_plot_dirs():
@@ -1593,29 +1649,16 @@ def make_config_fit_plot_dirs():
     -------
     """
     temp = CONFIG["Fit Plots Directory"]
-    CONFIG["Fit Plot Dirs"] = [copy.deepcopy(temp) for _ in range(12)]
-    if temp[-1] != '/':
-        for i in range(len(CONFIG["Fit Plot Dirs"])):
-            CONFIG["Fit Plot Dirs"][i] += "/"
-    # split the dirs first by peak vs percentile
-    for i in range(0, 6):
-        CONFIG["Fit Plot Dirs"][i] += "Percentiles/"
-    for i in range(6, 12):
-        CONFIG["Fit Plot Dirs"][i] += "Peaks/"
-    # now split them by limited and unlimited
-    for i in range(0, 3):
-        CONFIG["Fit Plot Dirs"][i] += "Complete/"
-        CONFIG["Fit Plot Dirs"][i+6] += "Complete/"
-    for i in range(3, 6):
-        CONFIG["Fit Plot Dirs"][i] += "Limited/"
-        CONFIG["Fit Plot Dirs"][i+6] += "Limited/"
-    # now split them by lo_err, fit, hi_err
-    for i in range(0, 12, 3):
-        CONFIG["Fit Plot Dirs"][i] += "Low_Edge/"
-    for i in range(1, 12, 3):
-        CONFIG["Fit Plot Dirs"][i] += "Parameters/"
-    for i in range(2, 12, 3):
-        CONFIG["Fit Plot Dirs"][i] += "High_Edge/"
+    subdir1 = ["Percentiles", "Peaks"]
+    subdir2 = ["Complete", "Limited"]
+    subdir3 = ["Low_Edge", "Parameters", "High_Edge"]
+    CONFIG["Fit Plot Dirs"] = []
+    # make all combinations of subdir1, subdir2, and subdir3 elements
+    for dir1 in subdir1:
+        for dir2 in subdir2:
+            for dir3 in subdir3:
+                CONFIG["Fit Plot Dirs"].append(os.path.join(temp, dir1,
+                                                            dir2, dir3))
     for fit_dir in CONFIG["Fit Plot Dirs"]:
         if not os.path.exists(fit_dir):
             os.makedirs(fit_dir)
@@ -1638,13 +1681,8 @@ def make_config_fit_csv_dirs():
     Returns
     -------
     """
-    CONFIG["Fit Csv Dirs"] = [copy.deepcopy(CONFIG["Fits Csv Directory"]),
-                              copy.deepcopy(CONFIG["Fits Csv Directory"])]
-    if CONFIG["Fits Csv Directory"][-1] != "/":
-        for i in range(2):
-            CONFIG["Fit Csv Dirs"][i] += "/"
-    CONFIG["Fit Csv Dirs"][0] += "percentiles/"
-    CONFIG["Fit Csv Dirs"][1] += "peaks/"
+    CONFIG["Fit Csv Dirs"] = [os.path.join(CONFIG["Fits Csv Directory"], x) for
+                              x in ["percentiles","peaks"]]
     for fit_dir in CONFIG["Fit Csv Dirs"]:
         if not os.path.exists(fit_dir):
             os.makedirs(fit_dir)
