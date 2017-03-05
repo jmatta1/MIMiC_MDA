@@ -93,6 +93,12 @@ def main():
                                CONFIG["Number of Walkers"], samples_needed,
                                CONFIG["Confidence Interval"])
         sys.exit()
+    # make sure that the number of walkers for time series plots does not
+    # exceed the number of walkers
+    if CONFIG["Number of Walkers"] < CONFIG["Walker Plot Count"]:
+        print 'CONFIG["Number of Walkers"] must exceed '\
+            'CONFIG["Walker Plot Count"]'
+        sys.exit()
     # make certain the user gave enough EWSR fractions for the max L
     num_dists = (1 + CONFIG["Maximum L"])
     num_ewsr = len(CONFIG["EWSR Fractions"])
@@ -1155,8 +1161,8 @@ def gen_time_series_plots(sampler, ndims, energy):
     -----------------
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
-        start. It uses the 'Number of Walkers', 'Sample Points',
-        'Time Plot Dirs', and 'Plot Format' keys
+        start. It uses the 'Maximum L', 'Time Plot Dirs', 'Plot Format'
+        'Sample Points', and 'Walker Plot Count' keys
 
     Returns
     -------
