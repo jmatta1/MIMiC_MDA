@@ -225,12 +225,12 @@ def write_param_plots(parameters, energy_set):
         perc_data = [pset[0][i] for pset in parameters]
         peak_data = [pset[1][i] for pset in parameters]
         # calculate the two file names
-        perc_path = CONFIG["Param Plot Dirs"][0]
-        peak_path = CONFIG["Param Plot Dirs"][1]
-        perc_path += ("A%d_L%d_percentile_parameters.%s" %
-                      (CONFIG["Target A"], i, CONFIG["Plot Format"]))
-        peak_path += ("A%d_L%d_peak_parameters.%s" % (CONFIG["Target A"], i,
-                                                      CONFIG["Plot Format"]))
+        file_name = ("A%d_L%d_percentile_parameters.%s" %
+                     (CONFIG["Target A"], i, CONFIG["Plot Format"]))
+        perc_path = os.path.join(CONFIG["Param Plot Dirs"][0], file_name) 
+        file_name = ("A%d_L%d_peak_parameters.%s" % (CONFIG["Target A"], i,
+                                                     CONFIG["Plot Format"]))
+        peak_path = os.path.join(CONFIG["Param Plot Dirs"][1],file_name)
         make_param_plot(perc_path, perc_data, energy_set, i)
         make_param_plot(peak_path, peak_data, energy_set, i)
 
@@ -321,13 +321,10 @@ def write_param_sets(parameters, energy_set):
     perc_data = [pset[0] for pset in parameters]
     peak_data = [pset[1] for pset in parameters]
     # generate the file names
-    perc_path = CONFIG["Parameter Files Directory"]
-    peak_path = CONFIG["Parameter Files Directory"]
-    if CONFIG["Parameter Files Directory"][-1] != "/":
-        perc_path += "/"
-        peak_path += "/"
-    perc_path += ("A%d_percentile_parameters.csv" % CONFIG["Target A"])
-    peak_path += ("A%d_peak_parameters.csv" % CONFIG["Target A"])
+    file_name = ("A%d_percentile_parameters.csv" % CONFIG["Target A"])
+    perc_path = os.path.join(CONFIG["Parameter Files Directory"], file_name)
+    file_name = ("A%d_peak_parameters.csv" % CONFIG["Target A"])
+    peak_path = os.path.join(CONFIG["Parameter Files Directory"], file_name)
     # now call the function that writes a parameter set
     write_horizontal_param_file(perc_path, perc_data, energy_set, "percentile")
     write_horizontal_param_file(peak_path, peak_data, energy_set, "peak find")
@@ -484,29 +481,28 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
             for k in range(3):  # params-lo_errs, params, params+hi_errs
                 sc_dists = gen_fit_dists(pset[k], dist_set)
                 for j in range(2):  # full or limitted
-                    plot_path = "%sA%d_E%4.1f.%s" % (CONFIG["Fit Plot Dirs"]
-                                                     [6*i+3*j+k],
-                                                     CONFIG["Target A"],
-                                                     energy,
-                                                     CONFIG["Plot Format"])
+                    file_name = ("A%d_E%4.1f.%s"%(CONFIG["Target A"], energy,
+                                                  CONFIG["Plot Format"]))
+                    plt_path = os.path.join(CONFIG["Fit Plot Dirs"][6*i+3*j+k],
+                                            file_name)
                     # now decide how much of the distributions to call the
                     # gen fit plot function on
                     if j == 1:
                         gen_fit_plot(exp_points, energy,
                                      sc_dists[:(CONFIG["Fit Plot L Limit"]+2)],
                                      legend[:(CONFIG["Fit Plot L Limit"]+2)],
-                                     plot_path)
+                                     plt_path)
                     elif (CONFIG["Subtract IVGDR"] and
                           not CONFIG["Plot IVGDR in Fits"]):
                         gen_fit_plot(exp_points, energy,
                                      sc_dists[:(len(sc_dists)-1)],
                                      legend[:(len(sc_dists)-1)],
-                                     plot_path)
+                                     plt_path)
                     else:
                         gen_fit_plot(exp_points, energy,
                                      sc_dists[:len(sc_dists)],
                                      legend[:len(sc_dists)],
-                                     plot_path)
+                                     plt_path)
 
 
 def gen_param_sets_for_fit_plot(params):
@@ -700,10 +696,9 @@ def write_fits(data, dists, parameters, ivgdr_info):
             perc_set.append((ivgdr_info[1][i], 0.0, 0.0))
             peak_set.append((ivgdr_info[1][i], 0.0, 0.0))
         # calculate the file names
-        file_paths = ["%sA%d_E%4.1f.csv" % (CONFIG["Fit Csv Dirs"][0],
-                                            CONFIG["Target A"], energy),
-                      "%sA%d_E%4.1f.csv" % (CONFIG["Fit Csv Dirs"][1],
-                                            CONFIG["Target A"], energy)]
+        file_name = "A%d_E%4.1f.csv" % (CONFIG["Target A"], energy)
+        file_paths = [os.path.join(CONFIG["Fit Csv Dirs"][0], file_name),
+                      os.path.join(CONFIG["Fit Csv Dirs"][1], file_name)]
         # write the percentile fit
         write_fit_csv(file_paths[0], points, perc_set, dist_set, energy)
         # write the peak find fit
@@ -1045,7 +1040,7 @@ def fit_and_mcmc(data_tuple):
     return perform_sample_manips(sampler, ndims, energy)
 
 
-def prepare_shared_object()
+def prepare_shared_object():
     """This function loads an instance of the shared object and sets the
     restypes and argtypes for the functions of interest
 
@@ -1068,28 +1063,31 @@ def prepare_shared_object()
     # tell python the function argument and return types for all the functions
     # that the library exports, even if we do not use all of them
     # restype for makeMdaStruct
-    cs_lib.makeMdaStruct.restype = c_void_p
+    cs_lib.makeMdaStruct.restype = ct.c_void_p
     # argtypes for makeMdaStruct
-    cs_lib.makeMdaStruct.argtypes = [c_int, c_int]
+    cs_lib.makeMdaStruct.argtypes = [ct.c_int, ct.c_int]
     # arg types for freeMdaStruct (it returns void)
-    cs_lib.freeMdaStruct.argtypes = [c_void_p]
+    cs_lib.freeMdaStruct.argtypes = [ct.c_void_p]
     # arg types for setMdaData (it returns void)
-    cs_lib.setMdaData.argtypes = [c_void_p, POINTER(c_double)]
+    cs_lib.setMdaData.argtypes = [ct.c_void_p, ct.POINTER(ct.c_double)]
     # arg types for setMdaDist (it returns void)
-    cs_lib.setMdaDist.argtypes = [c_void_p, c_int, POINTER(c_double)]
+    cs_lib.setMdaDist.argtypes = [ct.c_void_p, ct.c_int,
+                                  ct.POINTER(ct.c_double)]
     # restype for calculateChi
-    cs_lib.calculateChi.restype = c_double
+    cs_lib.calculateChi.restype = ct.c_double
     # argtypes for calculateChi
-    cs_lib.calculateChi.argtypes = [c_void_p, POINTER(c_double)]
+    cs_lib.calculateChi.argtypes = [ct.c_void_p, ct.POINTER(ct.c_double)]
     # restype for calculateLnLiklihood
-    cs_lib.calculateLnLiklihood.restype = c_double
+    cs_lib.calculateLnLiklihood.restype = ct.c_double
     # argtypes for calculateLnLiklihood
-    cs_lib.calculateLnLiklihood.argtypes = [c_void_p, POINTER(c_double)]
+    cs_lib.calculateLnLiklihood.argtypes = [ct.c_void_p,
+                                            ct.POINTER(ct.c_double)]
     # restype for calculateLnLiklihoodResids
-    cs_lib.calculateLnLiklihoodResids.restype = c_double
+    cs_lib.calculateLnLiklihoodResids.restype = ct.c_double
     # argtypes for calculateLnLiklihoodResids
-    cs_lib.calculateLnLiklihoodResids.argtypes = [c_void_p, POINTER(c_double),
-                                                  POINTER(c_double)]
+    cs_lib.calculateLnLiklihoodResids.argtypes = [ct.c_void_p,
+                                                  ct.POINTER(ct.c_double),
+                                                  ct.POINTER(ct.c_double)]
     return cs_lib
 
 
@@ -1161,6 +1159,7 @@ def perform_sample_manips(sampler, ndims, energy):
         fig = None
         if CONFIG["Corner Plot Samples"] >= num_samples:
             fig = corner.corner(samples, labels=lbls, range=ranges,
+                                bins=CONFIG["Corner Plot Bins"],
                                 quantiles=quantile_list, truths=peak_vals,
                                 verbose=False)
         else:
@@ -1168,17 +1167,14 @@ def perform_sample_manips(sampler, ndims, energy):
             np.random.shuffle(samples)
             fig = corner.corner(samples[0:CONFIG["Corner Plot Samples"]],
                                 labels=lbls, range=ranges,
+                                bins=CONFIG["Corner Plot Bins"],
                                 quantiles=quantile_list, truths=peak_vals,
                                 verbose=False)
         # make the corner plot file_name
-        if CONFIG["Corner Plots Directory"][-1] == '/':
-            fig_file_name = CONFIG["Corner Plots Directory"] +\
-                "A%d_corner_E%4.1f.%s" % (CONFIG["Target A"], energy,
-                                          CONFIG["Plot Format"])
-        else:
-            fig_file_name = CONFIG["Corner Plots Directory"] +\
-                "/A%d_corner_E%4.1f.%s" % (CONFIG["Target A"], energy,
-                                           CONFIG["Plot Format"])
+        file_name = "A%d_corner_E%4.1f.%s" % (CONFIG["Target A"], energy,
+                                              CONFIG["Plot Format"])
+        fig_file_name = os.path.join(CONFIG["Corner Plots Directory"],
+                                     file_name)
         fig.savefig(fig_file_name, bbox_inches='tight')
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
@@ -1211,8 +1207,10 @@ def gen_time_series_plots(sampler, ndims, energy):
     Returns
     -------
     """
+    print "Making Time Series plots for", energy, "MeV"
     fmt_string = "tSeries_L{0:d}_Ex{1:4.2f}.{2:s}"
     xvals = np.arange(0,CONFIG["Sample Points"])
+    samples = sampler.chain
     for i in range(CONFIG["Maximum L"]+1):
         # make the plot name
         fig_file_name = os.path.join(CONFIG["Time Plot Dirs"][i],
@@ -1221,7 +1219,7 @@ def gen_time_series_plots(sampler, ndims, energy):
         fig, axes = plt.subplots()
         for j in range(CONFIG["Walker Plot Count"]):
             axes.plot(xvals,samples[j,:,i],color='b')
-        fig.savefig(plot_name, bbox_inches='tight')
+        fig.savefig(fig_file_name, bbox_inches='tight')
         plt.close(fig)
 
 
@@ -1635,8 +1633,9 @@ def generate_output_dirs():
     if not os.path.exists(CONFIG["Prob Plots Directory"]):
         os.makedirs(CONFIG["Prob Plots Directory"])
     # test / create the directory for Markov Chains
-    if not os.path.exists(CONFIG["Chain Directory"]):
-        os.makedirs(CONFIG["Chain Directory"])
+    if CONFIG["Save Chain Data"]:
+        if not os.path.exists(CONFIG["Chain Directory"]):
+            os.makedirs(CONFIG["Chain Directory"])
     # test / create the directory for Parameter Plots
     make_config_param_plot_dirs()
     # test / create the directories for time series plots
