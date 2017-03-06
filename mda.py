@@ -101,12 +101,22 @@ def main():
         sys.exit()
     # make certain the user gave enough EWSR fractions for the max L
     num_dists = (1 + CONFIG["Maximum L"])
-    num_ewsr = len(CONFIG["EWSR Fractions"])
-    if num_ewsr > num_dists:
-        print TOO_MANY_EWSR_ERROR.format(num_dists, num_ewsr)
+    if len(CONFIG["EWSR Fractions"]) > num_dists:
+        print TOO_MANY_EWSR_ERROR.format(num_dists,
+                                         len(CONFIG["EWSR Fractions"]))
         sys.exit()
-    elif num_ewsr < num_dists:
-        print TOO_FEW_EWSR_ERROR.format(num_dists, num_ewsr)
+    elif len(CONFIG["EWSR Fractions"]) < num_dists:
+        print TOO_FEW_EWSR_ERROR.format(num_dists,
+                                        len(CONFIG["EWSR Fractions"]))
+        sys.exit()
+    # make sure as many corner plot bins as fit params were supplied
+    if len(CONFIG["Corner Plot Bins"]) > num_dists:
+        print TOO_MANY_BINS_ERROR.format(num_dists,
+                                         len(CONFIG["Corner Plot Bins"]))
+        sys.exit()
+    elif len(CONFIG["Corner Plot Bins"]) < num_dists:
+        print TOO_FEW_BINS_ERROR.format(num_dists,
+                                        len(CONFIG["Corner Plot Bins"]))
         sys.exit()
     # check to make certain that there are at least 10 start points
     len_array = [len(CONFIG["Start Pts a%d" % i]) for i in range(num_dists)]
@@ -2263,6 +2273,20 @@ TOO_FEW_EWSR_ERROR = """
 Too few EWSR fractions listed, there must be
             (1 + CONFIGURATION[\"Maximum L\"]) = {0:d}
 EWSR fractions listed in the variable CONFIGURATION[\"EWSR Fractions\"],
+            {1:d} were given"""
+
+
+TOO_MANY_BINS_ERROR = """
+Too many corner bins listed, there must be
+            (1 + CONFIGURATION[\"Maximum L\"]) = {0:d}
+corner bins listed in the variable CONFIGURATION[\"Corner Plot Bins\"],
+            {1:d} were given"""
+
+
+TOO_FEW_BINS_ERROR = """
+Too few corner bins listed, there must be
+            (1 + CONFIGURATION[\"Maximum L\"]) = {0:d}
+corner bins listed in the variable CONFIGURATION[\"Corner Plot Bins\"],
             {1:d} were given"""
 
 
