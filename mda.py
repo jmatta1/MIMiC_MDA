@@ -23,16 +23,16 @@ config_file : string
 Returns
 -------
 """
-import sys
+import os
+import ctypes as ct
 import multiprocessing
+import sys
 import math
 import copy
 import emcee
-import os
 import corner
 import matplotlib.pyplot as plt
 import numpy as np
-import ctypes as ct
 from scipy import interpolate
 from scipy import optimize
 
@@ -372,8 +372,8 @@ def write_horizontal_param_file(path, params, energy_set, ptype):
     # write the header
     out_file.write(generate_param_file_header(ptype))
     # write each line of parameters and energies
-    for i in range(len(params)):
-        out_file.write(gen_param_file_line(energy_set[i], params[i]))
+    for i, param in enumerate(params):
+        out_file.write(gen_param_file_line(energy_set[i], param))
     # close the file we wrote
     out_file.close()
 
@@ -476,28 +476,29 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
     for i in range(len(parameters[0][0])):
         legend.append(r"$l_{{{0:d}}}$".format(i))
     # loop through each set of data and distributions
-    for i in range(len(data)):
+    for i, dat in enumerate(data):
         # extract the things pertinet to this set from the arguments
-        energy = data[i][0]
+        energy = dat[0]
         dist_set = copy.deepcopy(dists[i])
         param_set = list(copy.deepcopy(parameters[i]))
-        exp_points = data[i][1]
+        exp_points = dat[1]
         # handle ivgdr
         if CONFIG["Subtract IVGDR"]:
             dist_set.append(ivgdr_info[0][i])
             param_set.append((ivgdr_info[1][i], 0.0, 0.0))
             legend.append(r"$l_{-1}$")
         # loop through the plots to generate
-        for i in range(2):  # peaks or percentiles?
+        for ind in range(2):  # peaks or percentiles?
             # choose our parameter set and generate the three sets of fits
-            pset = gen_param_sets_for_fit_plot(param_set[i])
+            pset = gen_param_sets_for_fit_plot(param_set[ind])
             for k in range(3):  # params-lo_errs, params, params+hi_errs
                 sc_dists = gen_fit_dists(pset[k], dist_set)
                 for j in range(2):  # full or limitted
                     fmt_str = "A{0:d}_E{1:05.2f}.{2:s}"
                     file_name = fmt_str.format(CONFIG["Target A"], energy,
                                                CONFIG["Plot Format"])
-                    plt_path = os.path.join(CONFIG["Fit Plot Dirs"][6*i+3*j+k],
+                    dind = 6 * ind + 3 * j + k
+                    plt_path = os.path.join(CONFIG["Fit Plot Dirs"][dind],
                                             file_name)
                     # now decide how much of the distributions to call the
                     # gen fit plot function on
@@ -545,12 +546,12 @@ def gen_param_sets_for_fit_plot(params):
             [vals[0] for vals in params],
             [(vals[0] + vals[1]) for vals in params]]
     for pset in temp:
-        for i in range(len(pset)):
-            if pset[i] < 0.0:
+        for param in pset:
+            if param < 0.0:
                 print "Got a negative parameter when subtracting errors from"
                 print "parameters for fit plots, this should not be possible"
                 sys.exit()
-                pset[i] = 0.0
+                param = 0.0
     return temp
 
 
@@ -601,8 +602,8 @@ def gen_fit_plot(points, energy, dists, legends, plot_name):
     axes.errorbar(pt_x_vals, pt_y_vals, yerr=pt_e_vals, fmt="ko",
                   label=r"$Exp$", markersize=2.0)
     # plot the distributions
-    for i in range(len(dists)):
-        axes.plot(dists[i][:, 0], dists[i][:, 1],
+    for i, dis in enumerate(dists):
+        axes.plot(dis[:, 0], dis[:, 1],
                   line_styles[i % len(line_styles)], label=legends[i])
     # set the scale of the x axis
     axes.set_xlim(0.0, math.ceil(pt_x_vals.max()))
@@ -705,9 +706,9 @@ def write_fits(data, dists, parameters, ivgdr_info):
     -------
     """
     # first split the data up into individual runs
-    for i in range(len(data)):
-        energy = copy.deepcopy(data[i][0])
-        points = copy.deepcopy(data[i][1])
+    for i, dat in enumerate(data):
+        energy = copy.deepcopy(dat[0])
+        points = copy.deepcopy(dat[1])
         dist_set = copy.deepcopy(dists[i])
         perc_set = copy.deepcopy(parameters[i][0])
         peak_set = copy.deepcopy(parameters[i][1])
@@ -782,8 +783,8 @@ def write_fit_csv(path, points, pset, dist_set, energy):
     # append the distribution angles
     append_data_column_to_fit_csv(dist_set[0][:, 0], csv_list)
     # append each distribution, and scaled distribution
-    for i in range(len(dist_set)):
-        append_data_column_to_fit_csv(dist_set[i][:, 1], csv_list)
+    for i, dis in enumerate(dist_set):
+        append_data_column_to_fit_csv(dis[:, 1], csv_list)
         append_data_column_to_fit_csv(scaled_dists[i+1][:, 1], csv_list)
     # append a blank column
     append_str_to_fit_csv(", ", csv_list)
@@ -817,11 +818,11 @@ def append_data_column_to_fit_csv(data, csv_list):
     Returns
     -------
     """
-    for i in range(len(csv_list)):
+    for i, sub_csv_list in enumerate(csv_list):
         if i < len(data):
-            csv_list[i] += "{0:f}, ".format(data[i])
+            sub_csv_list += "{0:f}, ".format(data[i])
         else:
-            csv_list[i] += ", "
+            sub_csv_list += ", "
 
 
 def append_parameters_to_fit_csv(pset, csv_list):
@@ -851,12 +852,12 @@ def append_parameters_to_fit_csv(pset, csv_list):
             name_list.append("a{0:d}".format(i))
     # now append the names and error bars
     fmt_str = "{0:s}, {1:f}, {2:f}, {3:f}, "
-    for i in range(len(csv_list)):
+    for i, csv_sublist in enumerate(csv_list):
         if i < len(pset):
-            csv_list[i] += fmt_str.format(name_list[i], pset[i][0],
+            csv_sublist += fmt_str.format(name_list[i], pset[i][0],
                                           pset[i][1], pset[i][2])
         else:
-            csv_list[i] += ", , , , "
+            csv_sublist += ", , , , "
 
 
 def append_str_to_fit_csv(str_to_append, csv_list):
@@ -877,8 +878,8 @@ def append_str_to_fit_csv(str_to_append, csv_list):
     Returns
     -------
     """
-    for i in range(len(csv_list)):
-        csv_list[i] += str_to_append
+    for csv_sublist in csv_list:
+        csv_sublist += str_to_append
 
 
 def append_exp_data_to_fit_csv(points, csv_list):
@@ -902,12 +903,12 @@ def append_exp_data_to_fit_csv(points, csv_list):
     -------
     """
     fmt_str = "{0:f}, {1:f}, {2:f}, "
-    for i in range(len(csv_list)):
+    for i, csv_sublist in enumerate(csv_list):
         if i < len(points):
-            csv_list[i] += fmt_str.format(points[i][0], points[i][1],
+            csv_sublist += fmt_str.format(points[i][0], points[i][1],
                                           points[i][2])
         else:
-            csv_list[i] += " , , , "
+            csv_sublist += " , , , "
 
 
 def gen_csv_title_and_headings(energy):
@@ -1222,9 +1223,8 @@ def gen_time_series_plots(sampler, ndims, energy):
     -----------------
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
-        start. It uses the 'Maximum L', 'Time Plot Dirs', 'Plot Format'
-        'Sample Points', 'Plot Height', 'Plot Width', 'Plot DPI', and
-        'Walker Plot Count' keys
+        start. It uses the 'Time Plot Dirs', 'Plot Format', 'Sample Points',
+        'Plot Height', 'Plot Width', 'Plot DPI', and 'Walker Plot Count' keys
 
     Returns
     -------
@@ -1233,7 +1233,7 @@ def gen_time_series_plots(sampler, ndims, energy):
     fmt_string = "tSeries_L{0:d}.{1:s}"
     xvals = np.arange(0, CONFIG["Sample Points"])
     samples = sampler.chain
-    for i in range(CONFIG["Maximum L"]+1):
+    for i in range(ndims):
         # make the plot name
         fig_name = fmt_string.format(i, CONFIG["Plot Format"])
         fig_file_name = os.path.join(make_time_series_plot_dir(energy),
@@ -1445,8 +1445,8 @@ def ln_post_prob(params, cs_lib, struct, bounds):
     """
     # first check if we are outside the resonable parameter range, if so,
     # return negative infinity, which corresponds to a probability of 0
-    for i in range(len(bounds)):
-        if params[i] < bounds[i][0] or params[i] > bounds[i][1]:
+    for i, bnd in enumerate(bounds):
+        if params[i] < bnd[0] or params[i] > bnd[1]:
             return -np.inf
     return cs_lib.calculateLnLiklihood(
         struct, params.ctypes.data_as(ct.POINTER(ct.c_double)))
@@ -1638,10 +1638,10 @@ def make_calc_struct(cs_lib, data, dists):
     # load it with the data
     cs_lib.setMdaData(out_struct, data.ctypes.data_as(ct.POINTER(ct.c_double)))
     # iterate through this distributions
-    for i in range(len(dists)):
+    for i, dis in enumerate(dists):
         # load the distributions
         cs_lib.setMdaDist(out_struct, i,
-                          dists[i].ctypes.data_as(ct.POINTER(ct.c_double)))
+                          dis.ctypes.data_as(ct.POINTER(ct.c_double)))
     # return the struct
     return out_struct
 
@@ -1808,8 +1808,8 @@ def calc_start_params():
     for _ in range(num_starts):
         # first construct the start list based on the current indices
         curr_start = []
-        for i in range(len(indices)):
-            curr_start.append(sl_list[i][indices[i]])
+        for i, ind in enumerate(indices):
+            curr_start.append(sl_list[i][ind])
         start_list.append(curr_start)
         # now increment the indices
         increment_ind(indices, lengths)
@@ -1879,7 +1879,7 @@ def interp_all_dists(dists, data):
     # first make the output variable
     output = []
     # now iterate across the energies
-    for i in range(len(dists)):
+    for i, dis_set in enumerate(dists):
         # extract the list of angles for this energy
         angle_list = data[i][1][:, 0]
         # extract the list of errorss for this energy
@@ -1887,9 +1887,9 @@ def interp_all_dists(dists, data):
         # make the variable to hold the list of interpolated values
         en_output = []
         # iterate across the L values
-        for j in range(len(dists[i])):
+        for dist in dis_set:
             # interpolate and divide the distribution
-            interp_data = interpolate_dist(dists[i][j], angle_list,
+            interp_data = interpolate_dist(dist, angle_list,
                                            error_list).astype(np.float64)
             en_output.append(interp_data)
         # append the information for the distributions of this energy to output
@@ -2027,8 +2027,8 @@ def handle_ivgdr(data):
                         for (dist, ewsr, angle_list) in zip(dists, ewsrs,
                                                             angle_lists)]
         sub_data = copy.deepcopy(data)
-        for i in range(len(sub_data)):
-            sub_data[i][1][:, 1] = sub_data[i][1][:, 1] - ivgdr_values[i]
+        for i, sub_set in enumerate(sub_data):
+            sub_set[1][:, 1] = sub_set[1][:, 1] - ivgdr_values[i]
         print "IVGDR subtraction is done"
         return dists, ewsrs, sub_data
     else:
