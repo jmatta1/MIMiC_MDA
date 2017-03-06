@@ -36,7 +36,7 @@ CONFIG["Chain Directory"] = "./fits0/chains/"
 # directory to store parameter plots
 CONFIG["Parameter Plots Directory"] = "./fits0/param_plots/"
 # directory to store the autocorrellation plot sub directories
-CONFIG["Time Series Directory"] = "./fits0/walker_plots/"  # incomplete
+CONFIG["Time Series Directory"] = "./fits0/walker_plots/"
 # format for plot outputs. options are:
 # "svg" - scalable vector graphics
 # "svgz" - scalable vector graphics (compressed)
@@ -54,6 +54,8 @@ CONFIG["Generate Corner Plots"] = True
 # wish to generate the corner plot without the memory penalty you can set this
 # to use a random selection of however many samples out of the total
 CONFIG["Corner Plot Samples"] = 1000000
+# sets the number of bins for each parameter axis in the corner plot
+CONFIG["Corner Plot Bins"] = [100, 100, 100, 100, 100, 100, 100, 100]
 # sets whether or not the user wants to plot the IVGDR in the unlimited fit
 # plots
 CONFIG["Plot IVGDR in Fits"] = False
@@ -85,9 +87,9 @@ CONFIG["IVGDR Width"] = 7.91453
 # Maximum Angle (in degrees) to fit with
 CONFIG["Max Theta"] = 10.0
 # Energy such that all fitted energies are >= to it
-CONFIG["Start Energy"] = 8.4
+CONFIG["Start Energy"] = 10.4
 # Energy such that all fitted energies are <= to it
-CONFIG["Final Energy"] = 8.6
+CONFIG["Final Energy"] = 10.6
 
 # Limits on and paramters of the fit
 # Maximum L value to fit with
@@ -106,9 +108,9 @@ CONFIG["Confidence Interval"] = 0.682689492
 # holds the number of points to sample for each walker, should be about 10
 # autocorrellation times, 1 auto correllation time is the time it takes for the
 # walkers for all parameters to drift into their designated sampling region
-CONFIG["Sample Points"] = 4050
+CONFIG["Sample Points"] = 3000
 # holds the number of walks to run
-CONFIG["Number of Walkers"] = 2000
+CONFIG["Number of Walkers"] = 4000
 # holds the number of concurrent threads
 CONFIG["Number of Threads"] = 4
 # holds the number of bins to use when determining the peak of the probability
@@ -132,16 +134,16 @@ CONFIG["Start Pts a7"] = [0.05]
 # number of times to force bfgs to rerun for the initial fits
 CONFIG["Forced Extra Fits"] = 3
 # Number of refined points to use to generate initial positions for walkers
-CONFIG["Number Walker Generators"] = 20
+CONFIG["Number Walker Generators"] = 30
 # Spread of the initial sampling positions for walkers
-CONFIG["Sample Spread"] = 0.15
+CONFIG["Sample Spread"] = 0.75
 # Centroid of the offset applied to sampling positions for walkers
 CONFIG["Sample Offset Centroid"] = 0.02
 # Width of the offset applied to the sampling positions for walkers
 CONFIG["Sample Offset Width"] = 0.01
 # Number of points at the beginning of the Markov Chain to discard as 'burn in'
 # should be about one auto-correllation time
-CONFIG["Burn-in Points"] = 50
+CONFIG["Burn-in Points"] = 300
 # NOTES:
 # Note about how to calculate the number of sample points
 # the total number of sample points is the product of the following two values
