@@ -12,11 +12,11 @@ CONFIG["Shared Lib Path"] = "./C/libChiSq.so"
 
 # Information about inputs to the program
 # path to the file containing the experimental data
-CONFIG["Input File Path"] = "./58Ni_cefatz_en_row_decomp.csv"
+CONFIG["Input File Path"] = "./58Ni_oz_ca_ce_mda.csv"
 # path to the directory that contains the dwba GR distributions
 # the distributions, regardless of sum rule fraction, should all start at 0 deg
 # and have identical sampling angles and end points
-CONFIG["Distribution Directory"] = "./dist/"
+CONFIG["Distribution Directory"] = "./58Ni_dist/"
 
 # Information about outputs from the program
 # file to hold the fitted parameters
