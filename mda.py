@@ -1227,8 +1227,9 @@ def gen_time_series_plots(sampler, ndims, energy):
         fig_file_name = os.path.join(make_time_series_plot_dir(energy),
                                      fig_name)
         fig, axes = plt.subplots()
+        # add the first "Walker Plot Count" walkers to the time series plots
         for j in range(CONFIG["Walker Plot Count"]):
-            axes.plot(xvals,samples[j,:,i],color='b')
+            axes.plot(xvals,samples[j,:,i],color='k')
         fig.savefig(fig_file_name, bbox_inches='tight')
         plt.close(fig)
 
@@ -1252,7 +1253,10 @@ def make_time_series_plot_dir(energy):
         The path to the created time series plot sub directory
     """
     plot_dir_name = "Ex{0:4.2f}".format(energy)
-    return os.path.join(CONFIG["Time Series Directory"], plot_dir_name)
+    dir_path = os.path.join(CONFIG["Time Series Directory"], plot_dir_name)
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    return dir_path
 
 
 
