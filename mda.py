@@ -68,7 +68,6 @@ def main():
         'Burn-in Points', 'Confidence Interval', 'Number of Walkers',
         'Maximum L', 'EWSR Fractions', 'Start Pts a%d',
         'Number Walker Generators', and 'Plot Format', keys
-        
 
     Returns
     -------
@@ -185,7 +184,7 @@ def initialize_mda():
     print "Data is interleaved"
     generate_output_dirs()
     mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
-    print MDA_START_MSG.format(CONFIG["Number of Threads"]
+    print MDA_START_MSG.format(CONFIG["Number of Threads"])
     parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
     # parameters = map(fit_and_mcmc, interleaved_data)
@@ -238,10 +237,10 @@ def write_param_plots(parameters, energy_set):
         fmt_str = "A{0:d}_L{1:d}_{2:s}_parameters.{3:s}"
         file_name = fmt_str.format(CONFIG["Target A"], i, "percentile",
                                    CONFIG["Plot Format"])
-        perc_path = os.path.join(CONFIG["Param Plot Dirs"][0], file_name) 
+        perc_path = os.path.join(CONFIG["Param Plot Dirs"][0], file_name)
         file_name = fmt_str.format(CONFIG["Target A"], i, "peak",
                                    CONFIG["Plot Format"])
-        peak_path = os.path.join(CONFIG["Param Plot Dirs"][1],file_name)
+        peak_path = os.path.join(CONFIG["Param Plot Dirs"][1], file_name)
         make_param_plot(perc_path, perc_data, energy_set, i)
         make_param_plot(peak_path, peak_data, energy_set, i)
 
@@ -335,9 +334,9 @@ def write_param_sets(parameters, energy_set):
     peak_data = [pset[1] for pset in parameters]
     # generate the file names
     fmt_str = "A{0:d}_{1:s}_parameters.csv"
-    file_name = fmt_str.format(CONFIG["Target A"],"percentile")
+    file_name = fmt_str.format(CONFIG["Target A"], "percentile")
     perc_path = os.path.join(CONFIG["Parameter Files Directory"], file_name)
-    file_name = fmt_str.format(CONFIG["Target A"],"peak")
+    file_name = fmt_str.format(CONFIG["Target A"], "peak")
     peak_path = os.path.join(CONFIG["Parameter Files Directory"], file_name)
     # now call the function that writes a parameter set
     write_horizontal_param_file(perc_path, perc_data, energy_set, "percentile")
@@ -855,7 +854,7 @@ def append_parameters_to_fit_csv(pset, csv_list):
     for i in range(len(csv_list)):
         if i < len(pset):
             csv_list[i] += fmt_str.format(name_list[i], pset[i][0],
-                                          pset[i][1], pset[i][2]))
+                                          pset[i][1], pset[i][2])
         else:
             csv_list[i] += ", , , , "
 
@@ -930,7 +929,6 @@ def gen_csv_title_and_headings(energy):
     -------
     out_str : string
         The string wth the first few header lines of the csv file output
-        
     """
     # first generate the title string
     out_str = "Fit Information for Ex =, {0:4.1f}\n".format(energy)
@@ -1243,7 +1241,7 @@ def gen_time_series_plots(sampler, ndims, energy):
         fig, axes = plt.subplots()
         # add the first "Walker Plot Count" walkers to the time series plots
         for j in range(CONFIG["Walker Plot Count"]):
-            axes.plot(xvals,samples[j,:,i],color='k')
+            axes.plot(xvals, samples[j, :, i], color='k')
         fig.set_size_inches(CONFIG["Plot Height"], CONFIG["Plot Width"])
         fig.savefig(fig_file_name, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
         plt.close(fig)
@@ -1382,7 +1380,6 @@ def make_prob_plots(samples, energy, peak_vals):
 
     peak_vals : array of floats
         The values of the peaks of the probability distribution
-        
 
     Global Parameters
     -----------------
@@ -1405,7 +1402,6 @@ def make_prob_plots(samples, energy, peak_vals):
                             quantiles=quantile_list, truths=[peak_vals[i]],
                             verbose=False, bins=CONFIG["Num Bins"])
         # make the probability plot file_name
-        
         base_file_name = fmt_str.format(CONFIG["Target A"], energy, i,
                                         CONFIG["Plot Format"])
         fig_file_name = os.path.join(CONFIG["Prob Plots Directory"],
@@ -1432,7 +1428,6 @@ def ln_post_prob(params, cs_lib, struct, bounds):
 
     bounds : array of floats
         the bounds (inclusive) for each parameter
-        
 
     Global Parameters
     -----------------
@@ -1768,7 +1763,7 @@ def make_config_fit_csv_dirs():
     -------
     """
     CONFIG["Fit Csv Dirs"] = [os.path.join(CONFIG["Fits Csv Directory"], x) for
-                              x in ["percentiles","peaks"]]
+                              x in ["percentiles", "peaks"]]
     for fit_dir in CONFIG["Fit Csv Dirs"]:
         if not os.path.exists(fit_dir):
             os.makedirs(fit_dir)
@@ -2112,11 +2107,11 @@ def read_ivgdr_dists(en_list):
 class IVGDRFraction(object):
     """Object to hold the information needed to calculate a lorentzian divided
     by its integral
-    
+
     Parameters
     ----------
     max_sigma: float
-        The height (in millibarns) of the lorentzian 
+        The height (in millibarns) of the lorentzian
 
     centroid: float
         The centroid energy (in MeV) of the Lorentzian
@@ -2194,17 +2189,17 @@ class IVGDRFraction(object):
 def read_row_cs_data_file():
     """takes a cross-section file in row format and extracts the data,
     points with angle above max_angle are excluded
-    
+
     Parameters
     ----------
-    
+
     Global Parameters
     -----------------
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
         start. It uses the 'Input File Path', 'Final Energy', 'Start Energy',
         and 'Max Theta' keys in the dictionary
-    
+
     Returns
     -------
     fit_output: list of lists
