@@ -1234,13 +1234,13 @@ def gen_time_series_plots(sampler, ndims, energy):
     -------
     """
     print "Making Time Series plots for", energy, "MeV"
-    fmt_string = "tSeries_L{0:d}.{1:s}"
+    fmt_string = "tSeries_E{0:05.2f}_L{1:d}.{2:s}"
     xvals = np.arange(0, CONFIG["Sample Points"])
     samples = sampler.chain
     for i in range(ndims):
         # make the plot name
-        fig_name = fmt_string.format(i, CONFIG["Plot Format"])
-        fig_file_name = os.path.join(make_time_series_plot_dir(energy),
+        fig_name = fmt_string.format(energy, i, CONFIG["Plot Format"])
+        fig_file_name = os.path.join(CONFIG["Time Series Directory"],
                                      fig_name)
         fig, axes = plt.subplots()
         # add the first "Walker Plot Count" walkers to the time series plots
@@ -1249,30 +1249,6 @@ def gen_time_series_plots(sampler, ndims, energy):
         fig.set_size_inches(CONFIG["Plot Height"], CONFIG["Plot Width"])
         fig.savefig(fig_file_name, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
         plt.close(fig)
-
-
-def make_time_series_plot_dir(energy):
-    """This function makes the time series plot directories
-
-    Parameters
-    ----------
-
-    Global Parameters
-    -----------------
-    CONFIG : dictionary
-        This uses the CONFIG global dictionary that was read in at program
-        start. It uses the 'Time Series Directory' key
-
-    Returns
-    -------
-    plot_dir_path : str
-        The path to the created time series plot sub directory
-    """
-    plot_dir_name = "Ex{0:05.2f}".format(energy)
-    dir_path = os.path.join(CONFIG["Time Series Directory"], plot_dir_name)
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-    return dir_path
 
 
 def calc_param_values(samples, quantile_list, ndims):
