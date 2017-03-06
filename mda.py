@@ -268,7 +268,8 @@ def make_param_plot(path, params, energy_set, l_value):
     -----------------
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
-        start. It uses the 'Float Epsilon' key
+        start. It uses the 'Float Epsilon', 'Plot Height', 'Plot Width', and
+        'Plot DPI' keys
 
     Returns
     -------
@@ -301,8 +302,9 @@ def make_param_plot(path, params, energy_set, l_value):
     legend = axes.legend(loc='upper left', ncol=1)
     legend.get_frame().set_facecolor("white")
     # save and close the figure
+    fig.set_size_inches(CONFIG["Plot Height"], CONFIG["Plot Width"])
     # fig.savefig(path, additional_artists=[legend], bbox_inches='tight')
-    fig.savefig(path, bbox_inches='tight')
+    fig.savefig(path, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
     plt.close(fig)
 
 
@@ -574,6 +576,11 @@ def gen_fit_plot(points, energy, dists, legends, plot_name):
 
     Global Parameters
     -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Subtract IVGDR', 'Fit Plot Dirs', 'Target A',
+        'Plot Format', 'Fit Plot L Limit''Plot Height', 'Plot Width',
+        'Plot DPI', and 'Plot IVGDR in Fits' keys
 
     Returns
     -------
@@ -610,7 +617,9 @@ def gen_fit_plot(points, energy, dists, legends, plot_name):
     legend = axes.legend(loc='right', bbox_to_anchor=(1.2, 0.5), ncol=1)
     legend.get_frame().set_facecolor("white")
     # save and close the figure
-    fig.savefig(plot_name, additional_artists=[legend], bbox_inches='tight')
+    fig.set_size_inches(CONFIG["Plot Height"], CONFIG["Plot Width"])
+    fig.savefig(plot_name, additional_artists=[legend], bbox_inches='tight',
+                dpi=CONFIG["Plot DPI"])
     plt.close(fig)
 
 
@@ -1124,7 +1133,8 @@ def perform_sample_manips(sampler, ndims, energy):
         start. It uses the 'Number of Walkers', 'Sample Points',
         'Burn-in Points', 'Save Chain Data', 'Chain Directory', 'Target A',
         'Confidence Interval', 'Generate Corner Plots', 'Corner Plot Samples',
-        'Corner Plots Directory', and 'Plot Format' keys
+        'Corner Plots Directory', 'Plot Height', 'Plot Width', 'Plot DPI',
+        and 'Plot Format' keys
 
     Returns
     -------
@@ -1185,7 +1195,8 @@ def perform_sample_manips(sampler, ndims, energy):
                                               CONFIG["Plot Format"])
         fig_file_name = os.path.join(CONFIG["Corner Plots Directory"],
                                      file_name)
-        fig.savefig(fig_file_name, bbox_inches='tight')
+        fig.set_size_inches(CONFIG["Plot Height"], CONFIG["Plot Width"])
+        fig.savefig(fig_file_name, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
     # return the point and the errors
@@ -1212,7 +1223,8 @@ def gen_time_series_plots(sampler, ndims, energy):
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
         start. It uses the 'Maximum L', 'Time Plot Dirs', 'Plot Format'
-        'Sample Points', and 'Walker Plot Count' keys
+        'Sample Points', 'Plot Height', 'Plot Width', 'Plot DPI', and
+        'Walker Plot Count' keys
 
     Returns
     -------
@@ -1230,7 +1242,8 @@ def gen_time_series_plots(sampler, ndims, energy):
         # add the first "Walker Plot Count" walkers to the time series plots
         for j in range(CONFIG["Walker Plot Count"]):
             axes.plot(xvals,samples[j,:,i],color='k')
-        fig.savefig(fig_file_name, bbox_inches='tight')
+        fig.set_size_inches(CONFIG["Plot Height"], CONFIG["Plot Width"])
+        fig.savefig(fig_file_name, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
         plt.close(fig)
 
 
@@ -1373,8 +1386,7 @@ def make_prob_plots(samples, energy, peak_vals):
     -----------------
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
-        start. It uses the 'Confidence Interval' and 'Prob Plots Directory'
-        keys
+        start. It uses the 'Plot Height', 'Plot Width', and 'Plot DPI' keys
 
     Returns
     -------
@@ -1399,7 +1411,8 @@ def make_prob_plots(samples, energy, peak_vals):
             fig_file_name = CONFIG["Prob Plots Directory"] +\
                 "/A%d_prob_en_%4.1f_a%02d.%s" % (CONFIG["Target A"], energy,
                                                  i, CONFIG["Plot Format"])
-        fig.savefig(fig_file_name, bbox_inches='tight')
+        fig.set_size_inches(CONFIG["Plot Height"], CONFIG["Plot Width"])
+        fig.savefig(fig_file_name, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
         plt.close(fig)
 
 
