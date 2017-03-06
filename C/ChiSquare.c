@@ -28,6 +28,8 @@ __attribute__((malloc)) void* makeMdaStruct(int numPts, int numL)
     temp->resids = (double*) memalign(ALIGN_BOUND,sizeof(double)*numPts);
 #ifdef MAKE_AND_FREE_OUTPUT
     printf("\n\nMdaDataStruct is: %d bytes\n", sizeof(MdaData));
+    printf("MdaDataStruct* is: %d bytes\n", sizeof(MdaData*));
+    printf("Void* is: %d bytes\n", sizeof(void*));
     printf("MdaDataStruct is at: %p\n", temp);
     printf("Number of points is: %d\n", numPts);
     printf("Number of L values is: %d\n", numL);
@@ -66,7 +68,9 @@ void setMdaData(void* strPtr, double* divData)
 {
     MdaData* data = (MdaData*)strPtr;
 #ifdef ASSIGN_DATA_OUTPUT
-    printf("struct ptr is: %p\n", data);
+    printf("struct ptr is: %p\n", strPtr);
+    printf("dataStruct ptr is: %p\n", data);
+    printf("divData ptr is: %p\n", divData);
     printf("data ptr is: %p\n", data->data);
 #endif
     for (int i=0; i<data->numPts; ++i)
