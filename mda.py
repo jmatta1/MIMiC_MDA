@@ -1406,7 +1406,8 @@ def ln_post_prob(params, cs_lib, struct, bounds):
     for i in range(len(bounds)):
         if params[i] < bounds[i][0] or params[i] > bounds[i][1]:
             return -np.inf
-    return cs_lib.calculateLnLiklihood(struct, params.ctypes.data)
+    return cs_lib.calculateLnLiklihood(
+        struct, params.ctypes.data_as(ct.POINTER(ct.c_double)))
 
 
 def gen_walker_starts(gens):
@@ -1557,7 +1558,8 @@ def call_chi_sq(params, cs_lib, struct):
         The chi^2 of the data given the data and distributions in the struct
         and the parameters passed to calculateChi
     """
-    temp = cs_lib.calculateChi(struct, params.ctypes.data)
+    temp = cs_lib.calculateChi(struct,
+                               params.ctypes.data_as(ct.POINTER(ct.c_double)))
     return temp
 
 
@@ -1592,11 +1594,12 @@ def make_calc_struct(cs_lib, data, dists):
     # make a struct
     out_struct = cs_lib.makeMdaStruct(len(data), len(dists))
     # load it with the data
-    cs_lib.setMdaData(out_struct, data.ctypes.data)
+    cs_lib.setMdaData(out_struct, data.ctypes.data_as(ct.POINTER(ct.c_double)))
     # iterate through this distributions
     for i in range(len(dists)):
         # load the distributions
-        cs_lib.setMdaDist(out_struct, i, dists[i].ctypes.data)
+        cs_lib.setMdaDist(out_struct, i,
+                          dists[i].ctypes.data_as(ct.POINTER(ct.c_double)))
     # return the struct
     return out_struct
 
