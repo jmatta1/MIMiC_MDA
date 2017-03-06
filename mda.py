@@ -1247,7 +1247,6 @@ def gen_time_series_plots(sampler, ndims, energy):
         plt.close(fig)
 
 
-
 def make_time_series_plot_dir(energy):
     """This function makes the time series plot directories
 
@@ -1270,7 +1269,6 @@ def make_time_series_plot_dir(energy):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
     return dir_path
-
 
 
 def calc_param_values(samples, quantile_list, ndims):
@@ -1512,12 +1510,12 @@ def randomize_position(gen, ndims):
     # convert them to fractions of the original value
     randomizer = (np.ones((ndims), dtype=np.float64) - rands)
     # generate the randomized offsets
-    base_offsets = (CONFIG["Sample Offset Width"]
-                    * np.random.standard_normal(ndims))
+    base_offsets = (CONFIG["Sample Offset Width"] *
+                    np.random.standard_normal(ndims))
     # move the offsets to the appropriate centroid
-    offsets = ((CONFIG["Sample Offset Centroid"]
-                * np.ones((ndims), dtype=np.float64))
-               + base_offsets)
+    offsets = ((CONFIG["Sample Offset Centroid"] *
+                np.ones((ndims), dtype=np.float64)) +
+               base_offsets)
     # make the randomized positions
     position = (gen*randomizer + offsets)
     # now if any of the positions are negative set them to zero
