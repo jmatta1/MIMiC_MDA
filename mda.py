@@ -79,7 +79,7 @@ def main():
     cpu_count = multiprocessing.cpu_count()
     if CONFIG["Number of Threads"] > cpu_count:
         print "\nInvalid number of threads, on this machine it must be: "
-        print 'CONFIG["Number of Threads"] <= %d\n' % cpu_count
+        print 'CONFIG["Number of Threads"] <= {0:d}\n'.format(cpu_count)
         sys.exit()
     # check if the user set the sampling high enough for the error bars wished
     num_samples = ((CONFIG["Sample Points"] - CONFIG["Burn-in Points"]) *
@@ -88,10 +88,10 @@ def main():
                                    ((1.0 - CONFIG["Confidence Interval"]) /
                                     2.0)))
     if samples_needed > num_samples:
-        print SAMPLES_ERROR % (num_samples, CONFIG["Sample Points"],
-                               CONFIG["Burn-in Points"],
-                               CONFIG["Number of Walkers"], samples_needed,
-                               CONFIG["Confidence Interval"])
+        print SAMPLES_ERROR.format(num_samples, CONFIG["Sample Points"],
+                                   CONFIG["Burn-in Points"],
+                                   CONFIG["Number of Walkers"], samples_needed,
+                                   CONFIG["Confidence Interval"])
         sys.exit()
     # make sure that the number of walkers for time series plots does not
     # exceed the number of walkers
@@ -119,7 +119,8 @@ def main():
                                         len(CONFIG["Corner Plot Bins"]))
         sys.exit()
     # check to make certain that there are at least 10 start points
-    len_array = [len(CONFIG["Start Pts a%d" % i]) for i in range(num_dists)]
+    len_array = [len(CONFIG["Start Pts a{0:d}".format(i)]) for i in
+                 range(num_dists)]
     num_cells = 1
     for size in len_array:
         num_cells *= size
@@ -184,8 +185,7 @@ def initialize_mda():
     print "Data is interleaved"
     generate_output_dirs()
     mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
-    print ("Starting MDA process, working on up to %d energies simultaneously"
-           % CONFIG["Number of Threads"])
+    print MDA_START_MSG.format(CONFIG["Number of Threads"]
     parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
     # parameters = map(fit_and_mcmc, interleaved_data)
@@ -235,11 +235,12 @@ def write_param_plots(parameters, energy_set):
         perc_data = [pset[0][i] for pset in parameters]
         peak_data = [pset[1][i] for pset in parameters]
         # calculate the two file names
-        file_name = ("A%d_L%d_percentile_parameters.%s" %
-                     (CONFIG["Target A"], i, CONFIG["Plot Format"]))
+        fmt_str = "A{0:d}_L{1:d}_{2:s}_parameters.{3:s}"
+        file_name = fmt_str.format(CONFIG["Target A"], i, "percentile",
+                                   CONFIG["Plot Format"])
         perc_path = os.path.join(CONFIG["Param Plot Dirs"][0], file_name) 
-        file_name = ("A%d_L%d_peak_parameters.%s" % (CONFIG["Target A"], i,
-                                                     CONFIG["Plot Format"]))
+        file_name = fmt_str.format(CONFIG["Target A"], i, "peak",
+                                   CONFIG["Plot Format"])
         peak_path = os.path.join(CONFIG["Param Plot Dirs"][1],file_name)
         make_param_plot(perc_path, perc_data, energy_set, i)
         make_param_plot(peak_path, peak_data, energy_set, i)
@@ -295,8 +296,8 @@ def make_param_plot(path, params, energy_set, l_value):
     axes.set_ylim(0.0, y_max)
     # label the axes
     axes.set_xlabel('Excitation Energy (MeV)')
-    axes.set_ylabel(r'$a_{%d}$' % l_value)
-    fig.suptitle(r'MDA Results for L=%d' % l_value)
+    axes.set_ylabel(r'$a_{{{0:d}}}$'.format(l_value))
+    fig.suptitle(r'MDA Results for L={0:d}'.format(l_value))
     # make the legend
     # legend = axes.legend(loc='right', bbox_to_anchor=(1.2, 0.5), ncol=1)
     legend = axes.legend(loc='upper left', ncol=1)
@@ -333,9 +334,10 @@ def write_param_sets(parameters, energy_set):
     perc_data = [pset[0] for pset in parameters]
     peak_data = [pset[1] for pset in parameters]
     # generate the file names
-    file_name = ("A%d_percentile_parameters.csv" % CONFIG["Target A"])
+    fmt_str = "A{0:d}_{1:s}_parameters.csv"
+    file_name = fmt_str.format(CONFIG["Target A"],"percentile")
     perc_path = os.path.join(CONFIG["Parameter Files Directory"], file_name)
-    file_name = ("A%d_peak_parameters.csv" % CONFIG["Target A"])
+    file_name = fmt_str.format(CONFIG["Target A"],"peak")
     peak_path = os.path.join(CONFIG["Parameter Files Directory"], file_name)
     # now call the function that writes a parameter set
     write_horizontal_param_file(perc_path, perc_data, energy_set, "percentile")
@@ -400,9 +402,9 @@ def gen_param_file_line(energy, params):
     out_str : string
         line of parameters written out in the csv format
     """
-    out_str = ("%f, , " % energy)
+    out_str = ("{0:f}, , ".format(energy))
     for i in range((CONFIG["Maximum L"]+1)):
-        out_str += ("%f, %f, %f, , " % params[i])
+        out_str += "{0:f}, {1:f}, {2:f}, , ".format(*params[i])
     out_str += "\n"
     return out_str
 
@@ -428,11 +430,11 @@ def generate_param_file_header(ptype):
         Header for the CSV file that will be output for the summary of param
         values
     """
-    out_str = "MDA parameters extracted with %s techniques\n" % ptype
+    out_str = "MDA parameters extracted with {0:s} techniques\n".format(ptype)
     hrow1 = "Excitation, , "
     hrow2 = "Energy, , "
     for i in range((CONFIG["Maximum L"]+1)):
-        hrow1 += ("a%d, a%d, a%d, , " % (i, i, i))
+        hrow1 += "a{0:d}, a{0:d}, a{0:d}, , ".format(i)
         hrow2 += "Value, Pos. Err, Neg. Err., , "
     out_str += hrow1
     out_str += "\n"
@@ -473,7 +475,7 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
     # first make the directory names
     legend = [r"$Fit$"]
     for i in range(len(parameters[0][0])):
-        legend.append(r"$l_{%d}$" % i)
+        legend.append(r"$l_{{{0:d}}}$".format(i))
     # loop through each set of data and distributions
     for i in range(len(data)):
         # extract the things pertinet to this set from the arguments
@@ -493,8 +495,9 @@ def make_fit_plots(data, dists, parameters, ivgdr_info):
             for k in range(3):  # params-lo_errs, params, params+hi_errs
                 sc_dists = gen_fit_dists(pset[k], dist_set)
                 for j in range(2):  # full or limitted
-                    file_name = ("A%d_E%4.1f.%s"%(CONFIG["Target A"], energy,
-                                                  CONFIG["Plot Format"]))
+                    fmt_str = "A{0:d}_E{1:05.2f}.{2:s}"
+                    file_name = fmt_str.format(CONFIG["Target A"], energy,
+                                               CONFIG["Plot Format"])
                     plt_path = os.path.join(CONFIG["Fit Plot Dirs"][6*i+3*j+k],
                                             file_name)
                     # now decide how much of the distributions to call the
@@ -612,7 +615,7 @@ def gen_fit_plot(points, energy, dists, legends, plot_name):
     axes.set_xlabel(r'Lab Angle $(^{\circ{}})$')
     axes.set_ylabel(r'$(\partial^2 \sigma)/(\partial \Omega \partial E)$'
                     ' ($mb/(sr*MeV)$)')
-    fig.suptitle(r"MDA Fit for E$_x$=%4.1f MeV" % energy)
+    fig.suptitle(r"MDA Fit for E$_x$={0:4.2f} MeV".format(energy))
     # make the legend
     legend = axes.legend(loc='right', bbox_to_anchor=(1.2, 0.5), ncol=1)
     legend.get_frame().set_facecolor("white")
@@ -715,7 +718,7 @@ def write_fits(data, dists, parameters, ivgdr_info):
             perc_set.append((ivgdr_info[1][i], 0.0, 0.0))
             peak_set.append((ivgdr_info[1][i], 0.0, 0.0))
         # calculate the file names
-        file_name = "A%d_E%4.1f.csv" % (CONFIG["Target A"], energy)
+        file_name = "A{0:d}_E{1:5.2f}.csv".format(CONFIG["Target A"], energy)
         file_paths = [os.path.join(CONFIG["Fit Csv Dirs"][0], file_name),
                       os.path.join(CONFIG["Fit Csv Dirs"][1], file_name)]
         # write the percentile fit
@@ -817,7 +820,7 @@ def append_data_column_to_fit_csv(data, csv_list):
     """
     for i in range(len(csv_list)):
         if i < len(data):
-            csv_list[i] += ("%f, " % data[i])
+            csv_list[i] += "{0:f}, ".format(data[i])
         else:
             csv_list[i] += ", "
 
@@ -846,12 +849,13 @@ def append_parameters_to_fit_csv(pset, csv_list):
         if CONFIG["Subtract IVGDR"] and i == (len(pset)-1):
             name_list.append("a-1")
         else:
-            name_list.append("a%d" % i)
+            name_list.append("a{0:d}".format(i))
     # now append the names and error bars
+    fmt_str = "{0:s}, {1:f}, {2:f}, {3:f}, "
     for i in range(len(csv_list)):
         if i < len(pset):
-            csv_list[i] += ("%s, %f, %f, %f, " % (name_list[i], pset[i][0],
-                                                  pset[i][1], pset[i][2]))
+            csv_list[i] += fmt_str.format(name_list[i], pset[i][0],
+                                          pset[i][1], pset[i][2]))
         else:
             csv_list[i] += ", , , , "
 
@@ -898,10 +902,11 @@ def append_exp_data_to_fit_csv(points, csv_list):
     Returns
     -------
     """
+    fmt_str = "{0:f}, {1:f}, {2:f}, "
     for i in range(len(csv_list)):
         if i < len(points):
-            csv_list[i] += ("%f, %f, %f, " % (points[i][0], points[i][1],
-                                              points[i][2]))
+            csv_list[i] += fmt_str.format(points[i][0], points[i][1],
+                                          points[i][2])
         else:
             csv_list[i] += " , , , "
 
@@ -928,7 +933,7 @@ def gen_csv_title_and_headings(energy):
         
     """
     # first generate the title string
-    out_str = "Fit Information for Ex =, %4.1f\n" % energy
+    out_str = "Fit Information for Ex =, {0:4.1f}\n".format(energy)
     # now generate the two rows of column headings
     # first the easy column headings
     row1 = "Exp., Exp., Exp., , Param, Param., Pos., Neg., , Dist., "
@@ -936,7 +941,7 @@ def gen_csv_title_and_headings(energy):
     # write the headings for the distributions
     for i in range((CONFIG["Maximum L"]+1)):
         row1 += ", Scaled, "
-        row2 += "l%d, l%d, " % (i, i)
+        row2 += "l{0:d}, l{0:d}, ".format(i)
     # if needed write the heading for the ivgrd
     if CONFIG["Subtract IVGDR"]:
         row1 += ", Scaled, "
@@ -1154,13 +1159,9 @@ def perform_sample_manips(sampler, ndims, energy):
     # save the samples to the disk in the sp
     if CONFIG["Save Chain Data"]:
         print "Saving MCMC samples for", energy, "MeV"
-        chain_file_name = ""
-        if CONFIG["Chain Directory"][-1] == '/':
-            chain_file_name = CONFIG["Chain Directory"] +\
-                "A%d_chain_E%4.1f.npz" % (CONFIG["Target A"], energy)
-        else:
-            chain_file_name = CONFIG["Chain Directory"] +\
-                "/A%d_chain_E%4.1f.npz" % (CONFIG["Target A"], energy)
+        base_name = "A{0:d}_chain_E{1:5.2f}.npz".format(CONFIG["Target A"],
+                                                        energy)
+        chain_file_name = os.path.join(CONFIG["Chain Directory"], base_name)
         np.savez_compressed(chain_file_name, sampler.chain)
         print "Done saving MCMC samples for", energy, "MeV"
     # extract the error bars
@@ -1173,7 +1174,7 @@ def perform_sample_manips(sampler, ndims, energy):
     # make the corner plot
     if CONFIG["Generate Corner Plots"]:
         print "Commencing corner plot creation for", energy, "MeV"
-        lbls = [r"$a_{%d}$" % i for i in range(ndims)]
+        lbls = [r"$a_{{{0:d}}}$".format(i) for i in range(ndims)]
         ranges = [(0.00, (0.0001 + samples[:, i].max())) for i in
                   range(ndims)]
         fig = None
@@ -1191,8 +1192,9 @@ def perform_sample_manips(sampler, ndims, energy):
                                 quantiles=quantile_list, truths=peak_vals,
                                 verbose=False)
         # make the corner plot file_name
-        file_name = "A%d_corner_E%4.1f.%s" % (CONFIG["Target A"], energy,
-                                              CONFIG["Plot Format"])
+        fmt_str = "A{0:d}_corner_E{1:05.2f}.{2:s}"
+        file_name = fmt_str.format(CONFIG["Target A"], energy,
+                                   CONFIG["Plot Format"])
         fig_file_name = os.path.join(CONFIG["Corner Plots Directory"],
                                      file_name)
         fig.set_size_inches(CONFIG["Plot Height"], CONFIG["Plot Width"])
@@ -1230,12 +1232,12 @@ def gen_time_series_plots(sampler, ndims, energy):
     -------
     """
     print "Making Time Series plots for", energy, "MeV"
-    fmt_string = "tSeries_L{0:d}.{2:s}"
+    fmt_string = "tSeries_L{0:d}.{1:s}"
     xvals = np.arange(0, CONFIG["Sample Points"])
     samples = sampler.chain
     for i in range(CONFIG["Maximum L"]+1):
         # make the plot name
-        fig_name = fmt_string.format(i, energy, CONFIG["Plot Format"])
+        fig_name = fmt_string.format(i, CONFIG["Plot Format"])
         fig_file_name = os.path.join(make_time_series_plot_dir(energy),
                                      fig_name)
         fig, axes = plt.subplots()
@@ -1265,7 +1267,7 @@ def make_time_series_plot_dir(energy):
     plot_dir_path : str
         The path to the created time series plot sub directory
     """
-    plot_dir_name = "Ex{0:4.2f}".format(energy)
+    plot_dir_name = "Ex{0:05.2f}".format(energy)
     dir_path = os.path.join(CONFIG["Time Series Directory"], plot_dir_name)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -1392,25 +1394,22 @@ def make_prob_plots(samples, energy, peak_vals):
     -------
     """
     ndims = len(samples[0])
-    lbls = [r"$a_{%d}$" % i for i in range(ndims)]
+    lbls = [r"$a_{{{0:d}}}$".format(i) for i in range(ndims)]
     ranges = [(-0.0001, (0.0001 + samples[:, i].max())) for i in range(ndims)]
     quantile_list = np.array([(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
                               (0.5 + CONFIG["Confidence Interval"] / 2.0)])
+    fmt_str = "A{0:d}_prob_en_{1:05.2f}_a{2:02d}.{3:s}"
     for i in range(ndims):
         temp = samples[:, i]
         fig = corner.corner(temp, labels=[lbls[i]], range=[ranges[i]],
                             quantiles=quantile_list, truths=[peak_vals[i]],
                             verbose=False, bins=CONFIG["Num Bins"])
         # make the probability plot file_name
-        fig_file_name = None
-        if CONFIG["Prob Plots Directory"][-1] == '/':
-            fig_file_name = CONFIG["Prob Plots Directory"] +\
-                "A%d_prob_en_%4.1f_a%02d.%s" % (CONFIG["Target A"], energy, i,
-                                                CONFIG["Plot Format"])
-        else:
-            fig_file_name = CONFIG["Prob Plots Directory"] +\
-                "/A%d_prob_en_%4.1f_a%02d.%s" % (CONFIG["Target A"], energy,
-                                                 i, CONFIG["Plot Format"])
+        
+        base_file_name = fmt_str.format(CONFIG["Target A"], energy, i,
+                                        CONFIG["Plot Format"])
+        fig_file_name = os.path.join(CONFIG["Prob Plots Directory"],
+                                     base_file_name)
         fig.set_size_inches(CONFIG["Plot Height"], CONFIG["Plot Width"])
         fig.savefig(fig_file_name, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
         plt.close(fig)
@@ -1798,7 +1797,7 @@ def calc_start_params():
     # first load the sets into an array
     sl_list = []
     for i in range(CONFIG["Maximum L"]+1):
-        sl_list.append(CONFIG[("Start Pts a%d" % i)])
+        sl_list.append(CONFIG["Start Pts a{0:d}".format(i)])
     # now compute the total number of starting points
     # also get a list of the lengths of each starting list
     # also make a starting list of indices with everything set to 0
@@ -2267,13 +2266,16 @@ def read_row_cs_data_file():
 
 SAMPLES_ERROR = """
 WARNING: the number of samples:
-%d = ((%d - %d) * %d)
+{0:d} = (({1:d} - {2:d}) * {3:d})
 is not large enough to ensure 10 points outside of each error bar location
 for the given confidence interval. The minimum number of samples necessary is:
-%d = ceiling[ 10 / ((1.0 - %12.10f) / 2.0))
+{4:d} = ceiling[ 10 / ((1.0 - {5:12.10f}) / 2.0))
 
 For more information look at the mda_config.py file.
 """
+
+
+MDA_START_MSG = "Starting MDA, working on up to {0:d} energies simultaneously"
 
 
 TOO_MANY_EWSR_ERROR = """
