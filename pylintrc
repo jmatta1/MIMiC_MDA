@@ -1,2 +1,5 @@
 [MESSAGES CONTROL]
 disable=W0141
+
+[TYPECHECK]
+ignored-modules = numpy
