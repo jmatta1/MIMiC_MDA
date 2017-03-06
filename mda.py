@@ -1138,7 +1138,7 @@ def perform_sample_manips(sampler, ndims, energy):
         'Burn-in Points', 'Save Chain Data', 'Chain Directory', 'Target A',
         'Confidence Interval', 'Generate Corner Plots', 'Corner Plot Samples',
         'Corner Plots Directory', 'Plot Height', 'Plot Width', 'Plot DPI',
-        and 'Plot Format' keys
+        'Corner Default Range', and 'Plot Format' keys
 
     Returns
     -------
@@ -1177,16 +1177,20 @@ def perform_sample_manips(sampler, ndims, energy):
         ranges = [(0.00, (0.0001 + samples[:, i].max())) for i in
                   range(ndims)]
         fig = None
+        sample_set = None
         if CONFIG["Corner Plot Samples"] >= num_samples:
-            fig = corner.corner(samples, labels=lbls, range=ranges,
+            sample_set = samples
+        else:
+            # randomize the sample array and then extract the first chunk of it
+            np.random.shuffle(samples)
+            sample_set = samples[0:CONFIG["Corner Plot Samples"]]
+        if CONFIG["Corner Default Range"]:
+            fig = corner.corner(sample_set, labels=lbls,
                                 bins=CONFIG["Corner Plot Bins"],
                                 quantiles=quantile_list, truths=peak_vals,
                                 verbose=False)
         else:
-            # randomize the sample array and then extract the first chunk of it
-            np.random.shuffle(samples)
-            fig = corner.corner(samples[0:CONFIG["Corner Plot Samples"]],
-                                labels=lbls, range=ranges,
+            fig = corner.corner(sample_set, labels=lbls, range=ranges,
                                 bins=CONFIG["Corner Plot Bins"],
                                 quantiles=quantile_list, truths=peak_vals,
                                 verbose=False)

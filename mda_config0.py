@@ -62,6 +62,8 @@ CONFIG["Generate Corner Plots"] = True
 CONFIG["Corner Plot Samples"] = 1000000
 # sets the number of bins for each parameter axis in the corner plot
 CONFIG["Corner Plot Bins"] = [100, 100, 100, 100, 100, 100, 100, 100]
+# allow the corner package to set param ranges instead of [0, param_max]
+CONFIG["Corner Default Range"] = True
 # sets whether or not the user wants to plot the IVGDR in the unlimited fit
 # plots
 CONFIG["Plot IVGDR in Fits"] = False
