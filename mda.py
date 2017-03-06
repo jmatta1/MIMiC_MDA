@@ -1218,19 +1218,42 @@ def gen_time_series_plots(sampler, ndims, energy):
     -------
     """
     print "Making Time Series plots for", energy, "MeV"
-    fmt_string = "tSeries_L{0:d}_Ex{1:4.2f}.{2:s}"
-    xvals = np.arange(0,CONFIG["Sample Points"])
+    fmt_string = "tSeries_L{0:d}.{2:s}"
+    xvals = np.arange(0, CONFIG["Sample Points"])
     samples = sampler.chain
     for i in range(CONFIG["Maximum L"]+1):
         # make the plot name
-        fig_file_name = os.path.join(CONFIG["Time Plot Dirs"][i],
-                                     fmt_string.format(i, energy,
-                                                       CONFIG["Plot Format"]))
+        fig_name = fmt_string.format(i, energy, CONFIG["Plot Format"])
+        fig_file_name = os.path.join(make_time_series_plot_dir(energy),
+                                     fig_name)
         fig, axes = plt.subplots()
         for j in range(CONFIG["Walker Plot Count"]):
             axes.plot(xvals,samples[j,:,i],color='b')
         fig.savefig(fig_file_name, bbox_inches='tight')
         plt.close(fig)
+
+
+
+def make_time_series_plot_dir(energy):
+    """This function makes the time series plot directories
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Time Series Directory' key
+
+    Returns
+    -------
+    plot_dir_path : str
+        The path to the created time series plot sub directory
+    """
+    plot_dir_name = "Ex{0:4.2f}".format(energy)
+    return os.path.join(CONFIG["Time Series Directory"], plot_dir_name)
+
 
 
 def calc_param_values(samples, quantile_list, ndims):
@@ -1637,8 +1660,9 @@ def generate_output_dirs():
     # test / create the directories for fit plots
     make_config_fit_plot_dirs()
     # test / create the directory for corner plots
-    if not os.path.exists(CONFIG["Corner Plots Directory"]):
-        os.makedirs(CONFIG["Corner Plots Directory"])
+    if CONFIG["Generate Corner Plots"]:
+        if not os.path.exists(CONFIG["Corner Plots Directory"]):
+            os.makedirs(CONFIG["Corner Plots Directory"])
     # test / create the directory for probability plots
     if not os.path.exists(CONFIG["Prob Plots Directory"]):
         os.makedirs(CONFIG["Prob Plots Directory"])
@@ -1648,36 +1672,9 @@ def generate_output_dirs():
             os.makedirs(CONFIG["Chain Directory"])
     # test / create the directory for Parameter Plots
     make_config_param_plot_dirs()
-    # test / create the directories for time series plots
-    make_time_series_plot_dirs()
-
-
-def make_time_series_plot_dirs():
-    """This function makes the time series plot directories
-
-    Parameters
-    ----------
-
-    Global Parameters
-    -----------------
-    CONFIG : dictionary
-        This uses the CONFIG global dictionary that was read in at program
-        start. It uses the 'Time Series Directory' and 'Maximum L' key and
-        it creates (and uses) the "Time Plot Dirs' key
-
-    Returns
-    -------
-    """
-    # test / create the base directory for time series
+    # test / create the main directory for time series plots
     if not os.path.exists(CONFIG["Time Series Directory"]):
         os.makedirs(CONFIG["Time Series Directory"])
-    # now create the sub directories for each L
-    CONFIG["Time Plot Dirs"] = []
-    for i in range(CONFIG["Maximum L"] + 1):
-        temp_dir = os.path.join(CONFIG["Time Series Directory"], "L%d"%i)
-        if not os.path.exists(temp_dir):
-            os.makedirs(temp_dir)
-        CONFIG["Time Plot Dirs"].append(temp_dir)
 
 
 def make_config_param_plot_dirs():
