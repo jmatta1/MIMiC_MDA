@@ -12,19 +12,27 @@ def main():
     
     # tell python the function will return a void pointer
     cs_lib.makeMdaStruct.restype = c_void_p
+    cs_lib.makeMdaStruct.argtypes = [c_int, c_int]
+    cs_lib.freeMdaStruct.argtypes = [c_void_p]
+    cs_lib.setMdaData.argtypes = [c_void_p, POINTER(c_double)]
+    cs_lib.setMdaDist.argtypes = [c_void_p, c_int, POINTER(c_double)]
     cs_lib.calculateChi.restype = c_double
+    cs_lib.calculateChi.argtypes = [c_void_p, POINTER(c_double)]
     cs_lib.calculateLnLiklihood.restype = c_double
+    cs_lib.calculateLnLiklihood.argtypes = [c_void_p, POINTER(c_double)]
     cs_lib.calculateLnLiklihoodResids.restype = c_double
+    cs_lib.calculateLnLiklihoodResids.argtypes = [c_void_p, POINTER(c_double), POINTER(c_double)]
     
-    # make the strcuture to hold the MdaData with 50 data points and 8 L dists
+    # make the strcuture to hold the MdaData with 10 data points and 3 L dists
     t1 = time.time()
     mdaData = cs_lib.makeMdaStruct(10,3)
     t2 = time.time()
     print "make struct, took", int((t2-t1)*1000000), "microseconds"
+    print "{0:x}".format(mdaData)
     
     # make an array with the test data
     divDat = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], np.float64)
-    ddPtr = divDat.ctypes.data
+    ddPtr = divDat.ctypes.data_as(POINTER(c_double))
     
     # run the function to load the array into the struct
     t1 = time.time()
@@ -42,7 +50,7 @@ def main():
     
     # make an array with the test data
     params = np.array([0.2, 0.2, 0.2], np.float64)
-    parPtr = params.ctypes.data
+    parPtr = params.ctypes.data_as(POINTER(c_double))
     
     # run the function to calculate a chi^2
     t1 = time.time()
@@ -64,7 +72,7 @@ def main():
     
     # run the function to calculate a lnliklihood with external resids
     resids = np.arange(10.0, dtype=np.float64)
-    resPtr = resids.ctypes.data
+    resPtr = resids.ctypes.data_as(POINTER(c_double))
     t1 = time.time()
     lnlik = cs_lib.calculateLnLiklihoodResids(mdaData, parPtr, resPtr)
     for _ in range(30):
