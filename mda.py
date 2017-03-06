@@ -1015,11 +1015,7 @@ def fit_and_mcmc(data_tuple):
     start_points = data_tuple[3]
     print "Starting work on Energy", energy, "MeV"
     # now load the shared library
-    cs_lib = ct.cdll.LoadLibrary(CONFIG["Shared Lib Path"])
-    # set the return types
-    cs_lib.makeMdaStruct.restype = ct.c_void_p
-    cs_lib.calculateChi.restype = ct.c_double
-    cs_lib.calculateLnLiklihood.restype = ct.c_double
+    cs_lib = prepare_shared_object()
     # build the calculation object
     struct = make_calc_struct(cs_lib, fit_data, interp_dists)
     print "Commencing initial fits for", energy, "MeV"
@@ -1047,6 +1043,54 @@ def fit_and_mcmc(data_tuple):
     cs_lib.freeMdaStruct(struct)
     # now do the rest, all of which involves calculating things from samples
     return perform_sample_manips(sampler, ndims, energy)
+
+
+def prepare_shared_object()
+    """This function loads an instance of the shared object and sets the
+    restypes and argtypes for the functions of interest
+
+    Parameters
+    ----------
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Shared Lib Path' key
+
+    Returns
+    -------
+    cs_lib : ctypes.cdll.LoadLibrary object
+        This is the object representing the loaded dll containing the fast c
+        routines
+    """
+    cs_lib = ct.cdll.LoadLibrary(CONFIG["Shared Lib Path"])
+    # tell python the function argument and return types for all the functions
+    # that the library exports, even if we do not use all of them
+    # restype for makeMdaStruct
+    cs_lib.makeMdaStruct.restype = c_void_p
+    # argtypes for makeMdaStruct
+    cs_lib.makeMdaStruct.argtypes = [c_int, c_int]
+    # arg types for freeMdaStruct (it returns void)
+    cs_lib.freeMdaStruct.argtypes = [c_void_p]
+    # arg types for setMdaData (it returns void)
+    cs_lib.setMdaData.argtypes = [c_void_p, POINTER(c_double)]
+    # arg types for setMdaDist (it returns void)
+    cs_lib.setMdaDist.argtypes = [c_void_p, c_int, POINTER(c_double)]
+    # restype for calculateChi
+    cs_lib.calculateChi.restype = c_double
+    # argtypes for calculateChi
+    cs_lib.calculateChi.argtypes = [c_void_p, POINTER(c_double)]
+    # restype for calculateLnLiklihood
+    cs_lib.calculateLnLiklihood.restype = c_double
+    # argtypes for calculateLnLiklihood
+    cs_lib.calculateLnLiklihood.argtypes = [c_void_p, POINTER(c_double)]
+    # restype for calculateLnLiklihoodResids
+    cs_lib.calculateLnLiklihoodResids.restype = c_double
+    # argtypes for calculateLnLiklihoodResids
+    cs_lib.calculateLnLiklihoodResids.argtypes = [c_void_p, POINTER(c_double),
+                                                  POINTER(c_double)]
+    return cs_lib
 
 
 def perform_sample_manips(sampler, ndims, energy):
@@ -1332,7 +1376,7 @@ def ln_post_prob(params, cs_lib, struct, bounds):
     params : numpy array
         The parameter set to be tested
 
-    cs_lib : ct.cdll.LoadLibrary object
+    cs_lib : ctypes.cdll.LoadLibrary object
         This is the object representing the loaded dll containing the fast c
         routines
 
@@ -1452,7 +1496,7 @@ def do_init_fit(start, struct, cs_lib):
     struct : ctypes.void_ptr
         pointer to struct needed by calculation functions
 
-    cs_lib : ct.cdll.LoadLibrary object
+    cs_lib : ctypes.cdll.LoadLibrary object
         This is the object representing the loaded dll containing the fast c
         routines
 
@@ -1497,7 +1541,7 @@ def call_chi_sq(params, cs_lib, struct):
         numpy array containing the parameters [a0 to aN] where N is the Max L
         to be fit
 
-    cs_lib : ct.cdll.LoadLibrary object
+    cs_lib : ctypes.cdll.LoadLibrary object
         This is the object representing the loaded dll containing the fast c
         routines
 
@@ -1523,7 +1567,7 @@ def make_calc_struct(cs_lib, data, dists):
 
     Parameters
     ----------
-    cs_lib : ct.cdll.LoadLibrary object
+    cs_lib : ctypes.cdll.LoadLibrary object
         This is the object representing the loaded dll containing the fast c
         routines
 
