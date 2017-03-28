@@ -88,7 +88,7 @@ CONFIG["Max Theta"] = 10.0
 # Energy such that all fitted energies are >= to it
 CONFIG["Start Energy"] = 8.4
 # Energy such that all fitted energies are <= to it
-CONFIG["Final Energy"] = 9.6  # 31.6
+CONFIG["Final Energy"] = 15.6  # 31.6
 # Limits on and paramters of the fit
 # Maximum L value to fit with
 CONFIG["Maximum L"] = 7
@@ -103,10 +103,14 @@ CONFIG["Number of Threads"] = 1
 # walkers for all parameters to drift into their designated sampling region
 CONFIG["Sample Points"] = 8193
 # holds the number of walks to run
-CONFIG["Number of Walkers"] = 2048
+CONFIG["Number of Walkers"] = 2500
 # Number of points at the beginning of the Markov Chain to discard as 'burn in'
 # should be one to two of the longest auto-correlation times
-CONFIG["Burn-in Points"] = 300
+# if you get errors like "WARNING:root:Too few points to create valid contours"
+# then typicaly you did not set burn-in points high enough because it has some
+# points far from the proper region that it is trying to make contours for and
+# failing. Try increasing burn-in points and run again
+CONFIG["Burn-in Points"] = 512
 # Notes about sampling accuracy
 # the total number of used sample points can be calculated to be:
 # Samples = "Number of Walkers"*("Sample Points"-"Burn-in Points")
@@ -119,9 +123,9 @@ CONFIG["Burn-in Points"] = 300
 # MinIndSamp = Minimum(IndSampP_0, IndSampP_1, IndSampP_2, ...)
 # and from this we can estimate the distribution error to be:
 # DistErr ~= 1/Sqrt(MinIndSamp)
-# Therefore, with a maximum autocorrelation of 256 and Samples = 16164864
-# we get a sampling error of 1/Sqrt(63144) ~= 0.4%
-# With a maximum autocorrelation of 256 and Samples = 2560000
+# Therefore, with a maximum autocorrelation of 300 and Samples = 19200000
+# we get a sampling error of 1/Sqrt(63144) ~= 0.35%
+# With a maximum autocorrelation of 300 and Samples = 3000000
 # we get a sampling error of 1/Sqrt(10000) ~= 1%
 
 
@@ -140,7 +144,10 @@ CONFIG["Start Pts a4"] = [0.05, 0.15]
 CONFIG["Start Pts a5"] = [0.05, 0.15]
 CONFIG["Start Pts a6"] = [0.05, 0.15]
 CONFIG["Start Pts a7"] = [0.05, 0.15]
-# Spread of the initial sampling positions for walkers
+# Spread of the initial sampling positions for walkers setting this to be large
+# is a good idea, it really forces the system to get a good sampling of the 
+# broader distribution which in turn fills out the corner plots nicely (as well
+# as giving better results)
 CONFIG["Sample Spread"] = 2.0
 # Centroid of the offset applied to sampling positions for walkers
 CONFIG["Sample Offset Centroid"] = 0.04
@@ -150,6 +157,12 @@ CONFIG["Sample Offset Width"] = 0.02
 CONFIG["Forced Extra Fits"] = 3
 # Number of refined points to use to generate initial positions for walkers
 CONFIG["Number Walker Generators"] = 50
+# Walker start positions are calculated as follows, select a start position
+# from the fit points add a random offset with gaussian distribution,
+# the width and centroid of which are specified above, to each parameter. Then
+# multiply each parameter by a random value with gaussian distribution centered
+# at 0 with width "Sample Spread". If a parameter is negative, negate it, if a
+# parameter is 0, make it 0.001
 
 ###############################################################################
 #  Parameter and Error Finding configuration
@@ -202,7 +215,7 @@ CONFIG["Plot IVGDR in Fits"] = False
 # sets the max L the user wants to plot in the limited fit plot
 CONFIG["Fit Plot L Limit"] = 3
 # Number of walkers to plot in the time series plots
-CONFIG["Walker Plot Count"] = 1000
+CONFIG["Walker Plot Count"] = 500
 
 
 ###############################################################################
@@ -224,7 +237,7 @@ CONFIG["Calc AutoCorr"] = True
 # the accurace of the autocorrellation time calculation, or they require a lot
 # more than the recommended number of samples. In particular you need to
 # fulfill 2*AC_WIND*AC_WIND*(Longest ACorr Time) < CONFIG["Sample Points"]
-CONFIG["ACorr WindSize"] = 3.5
+CONFIG["ACorr WindSize"] = 3.0
 # This parameter sets if the effective sample size for the autocorrelation time
 # calculation should be restricted to 2^n samples (where n is as large as,
 # possible such that 2^n <= CONFIG["Sample Points"]), this does significantly
