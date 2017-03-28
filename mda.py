@@ -191,7 +191,7 @@ def initialize_mda():
     write_fits(plot_data, dists, parameters, ivgdr_info)
     # make the fit plots
     print "Writing fit plots"
-    make_fit_plots(exp_data, dists, parameters, ivgdr_info)
+    make_fit_plots(plot_data, dists, parameters, ivgdr_info)
     # write the two parameter sets
     energy_set = [val[0] for val in exp_data]
     print "Writing parameter sets"
@@ -200,8 +200,63 @@ def initialize_mda():
     print "Writing parameter plots"
     write_param_plots(parameters, energy_set)
     # write the diagnostic information
+    print "Writing diagnostic information"
+    write_diagnostic_csv(diag_data, exp_data)
     # and now we are completely done
     print "MDA and output complete"
+
+
+def write_diagnostic_csv(diag_data, exp_dat):
+    """This function takes the diagnostic data generated in the fit process and
+    writes it to a csv for assessment
+
+     Parameters
+    ----------
+    diag_data : list
+        The a list of the diagnostic data for each fit
+
+    exp_dat : list
+        The experimental data for each energy that was fitted
+
+    Global Parameters
+    -----------------
+    CONFIG : dictionary
+        This uses the CONFIG global dictionary that was read in at program
+        start. It uses the 'Maximum L', 'Calc AutoCorr', and 'Target A' keys
+
+    Returns
+    -------
+    """
+    num_params = CONFIG["Maximum L"] + 1
+    # for each angular distribution, calculate how many points there are
+    num_pts = [len(dat[1]) for dat in exp_dat]
+    # generate the output file
+    file_name = "A{0:d}_diagnostics.csv".format(CONFIG["Target A"])
+    file_path = os.path.join(CONFIG["Parameter Files Directory"], file_name)
+    outfile = open(file_path, 'w')
+    # now write the csv header
+    outfile.write("Ex Energy, , Percentile Chi^2, Peak Chi^2, Num Fitted ")
+    outfile.write("Data Points, Num Params, Num DoF, , Acceptance Fraction")
+    if CONFIG['Calc AutoCorr']:
+        outfile.write(', ')
+        for i in range(num_params):
+            outfile.write(", a{0:d} AutoCorr Time".format(i))
+    outfile.write('\n')
+    # now move through the fit data and write out all the columns
+    # (acor_time, chis, accept_frac)
+    for i, diag in enumerate(diag_data):
+        outfile.write('{0:f}, , {1:f}, {2:f}'.format(exp_dat[i][0], diag[1][0],
+                                                     diag[1][1]))
+        dof = (num_pts[i] - num_params)
+        outfile.write(', {0:d}, {1:d}, {2:d}'.format(num_pts[i], num_params,
+                                                     dof))
+        outfile.write(', , {0:f}'.format(diag[2]))
+        if CONFIG['Calc AutoCorr']:
+            outfile.write(', ')
+            for accfrac in diag[0]:
+                outfile.write(", {0:f}".format(accfrac))
+        outfile.write('\n')
+    outfile.close()
 
 
 def write_param_plots(parameters, energy_set):
@@ -1056,7 +1111,6 @@ def fit_and_mcmc(data_tuple):
     # perform the MCMC
     sampler.run_mcmc(starts, CONFIG["Sample Points"])
     print "Finished MCMC for", energy, "MeV"
-    
     # now do the rest, all of which involves calculating things from samples
     # or the things calculated from samples
     ret_vals = perform_sample_manips(sampler, ndims, energy, cs_lib, struct)
@@ -1148,7 +1202,8 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
         'Burn-in Points', 'Save Chain Data', 'Chain Directory', 'Target A',
         'Confidence Interval', 'Generate Corner Plots', 'Corner Plot Samples',
         'Corner Plots Directory', 'Plot Height', 'Plot Width', 'Plot DPI',
-        'Corner Default Range', and 'Plot Format' keys
+        'Corner Default Range', 'Calc AutoCorr', 'ACorr WindSize',
+        'ACorr Use FFT',  and 'Plot Format' keys
 
     Returns
     -------
@@ -2341,12 +2396,6 @@ NUM_STARTS_ERROR = """
 You must provide enough starting points such that there are at
 least {0:d} points (the number of start points is the length of each start list
 multiplied together)"""
-
-
-NUM_STARTS_MULT_ERROR = """
-The product
-(CONFIG["Sample Points"]-CONFIG["Burn-in Points"])*CONFIG["Number of Walkers"])
-must be a multiple of {0:d}"""
 
 
 if __name__ == "__main__":

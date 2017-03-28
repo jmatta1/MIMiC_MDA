@@ -99,7 +99,7 @@ CONFIG["Max Theta"] = 10.0
 # Energy such that all fitted energies are >= to it
 CONFIG["Start Energy"] = 8.4
 # Energy such that all fitted energies are <= to it
-CONFIG["Final Energy"] = 8.6  # 31.6
+CONFIG["Final Energy"] = 31.6
 
 # Limits on and paramters of the fit
 # Maximum L value to fit with
@@ -120,9 +120,9 @@ CONFIG["Confidence Interval"] = 0.682689492
 # walkers for all parameters to drift into their designated sampling region
 CONFIG["Sample Points"] = 16385
 # holds the number of walks to run
-CONFIG["Number of Walkers"] = 1000
+CONFIG["Number of Walkers"] = 2048
 # holds the number of concurrent threads
-CONFIG["Number of Threads"] = 1
+CONFIG["Number of Threads"] = 2
 # holds the number of bins to use when determining the peak of the probability
 # density distribution
 CONFIG["Num Bins"] = 1000
@@ -135,7 +135,8 @@ CONFIG["Float Epsilon"] = 1.0e-7
 # but requires a lot of extra samples to know accurately
 CONFIG["Calc AutoCorr"] = True
 # holds the number of autocorrellation times required to estimate the
-# autocorrelation time of the chains
+# autocorrelation time of the chains the larger this is the more accurate the
+# estimate
 # NOTES: a word of warning on this parameter, the autocorrellation time check
 # will fail under the following circumstances:
 # AC_WIND = CONFIG["ACorr WindSize"]
@@ -162,12 +163,12 @@ CONFIG["Start Pts a2"] = [0.0, 0.05, 0.10, 0.15, 0.2]
 CONFIG["Start Pts a3"] = [0.05, 0.10, 0.15]
 CONFIG["Start Pts a4"] = [0.05, 0.15]
 CONFIG["Start Pts a5"] = [0.05, 0.15]
-CONFIG["Start Pts a6"] = [0.05]
-CONFIG["Start Pts a7"] = [0.05]
+CONFIG["Start Pts a6"] = [0.05, 0.15]
+CONFIG["Start Pts a7"] = [0.05, 0.15]
 # number of times to force bfgs to rerun for the initial fits
 CONFIG["Forced Extra Fits"] = 3
 # Number of refined points to use to generate initial positions for walkers
-CONFIG["Number Walker Generators"] = 30
+CONFIG["Number Walker Generators"] = 50
 # Spread of the initial sampling positions for walkers
 CONFIG["Sample Spread"] = 0.75
 # Centroid of the offset applied to sampling positions for walkers
