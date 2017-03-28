@@ -127,10 +127,6 @@ def main():
         out_str = NUM_STARTS_ERROR.format(CONFIG["Number Walker Generators"])
         print out_str
         sys.exit()
-    # check to make certain that num sampes is a multiple of min start points
-    if (num_samples % CONFIG["Number Walker Generators"]) != 0:
-        print NUM_STARTS_MULT_ERROR.format(CONFIG["Number Walker Generators"])
-        sys.exit()
     # check to make certain that the given file format is one of the
     # supported formats
     if not CONFIG["Plot Format"] in PLOT_FORMAT_LIST:
