@@ -156,6 +156,7 @@ def initialize_mda():
     Returns
     -------
     """
+    print STARTUP_MSG
     # read the raw data
     (exp_data, plot_data) = read_row_cs_data_file()
     # now read and subtract the IVGDR data
@@ -239,10 +240,12 @@ def write_diagnostic_csv(diag_data, exp_dat):
     outfile.write("Ex Energy, , Percentile Chi^2, Peak Chi^2, Num Fitted ")
     outfile.write("Data Points, Num Params, Num DoF, , Acceptance Fraction")
     if CONFIG['Calc AutoCorr']:
-        outfile.write(', ')
+        outfile.write(', , NumIndSamples, Dist Error, ')
         for i in range(num_params):
             outfile.write(", a{0:d} AutoCorr Time".format(i))
     outfile.write('\n')
+    num_samps = CONFIG["Number of Walkers"]*(CONFIG["Sample Points"] -
+                                             CONFIG["Burn-in Points"])
     # now move through the fit data and write out all the columns
     # (acor_time, chis, accept_frac)
     for i, diag in enumerate(diag_data):
@@ -253,7 +256,9 @@ def write_diagnostic_csv(diag_data, exp_dat):
                                                      dof))
         outfile.write(', , {0:f}'.format(diag[2]))
         if CONFIG['Calc AutoCorr']:
-            outfile.write(', ')
+            indsamps = float(num_samps)/max(diag[0])
+            err = 1.0/math.sqrt(indsamps)
+            outfile.write(', {0:f},  {1:f}, '.format(indsamps, err))
             for accfrac in diag[0]:
                 outfile.write(", {0:f}".format(accfrac))
         outfile.write('\n')
@@ -1598,6 +1603,9 @@ def randomize_position(gen, ndims):
         start. It uses the 'Sample Spread', 'Sample Offset Centroid', and
         'Sample Offset Width' keys
 
+    FLOAT_EPSILON : float
+        A very small value that is the threshold for "two float are the same"
+
     Returns
     -------
     position : numpy array
@@ -1615,11 +1623,16 @@ def randomize_position(gen, ndims):
                 np.ones((ndims), dtype=np.float64)) +
                base_offsets)
     # make the randomized positions
-    position = (gen*randomizer + offsets)
-    # now if any of the positions are negative set them to zero
+    position = (randomizer*(gen + offsets))
+    # now if any of the positions are negative, negate them, if they are too
+    # close to zero, set them to 0.001
     for i in range(ndims):
         if position[i] < 0.0:
-            position[i] = 0.0
+            position[i] *= -1.0
+        elif position[i] < FLOAT_EPSILON:
+            position[i] = 0.001
+        elif position[i] > (1.0/CONFIG["EWSR Fractions"][i]):
+            position[i] = ((1.0/CONFIG["EWSR Fractions"][i]) - 0.001)
     return position
 
 
@@ -2402,6 +2415,14 @@ You must provide enough starting points such that there are at
 least {0:d} points (the number of start points is the length of each start list
 multiplied together)"""
 
+
+STARTUP_MSG = """
+The best way to abort this program while it is using the multiprocessing module
+(which it does even when 'Number of Threads' is set to 1) is not to use 
+'Ctrl+C' but instead 'Ctrl+Z' followed by 'kill %Job Number' (Job Number is
+usually 1) This avoids any insanity from the interruption of the
+multiproccessing module
+"""
 
 if __name__ == "__main__":
     main()
