@@ -1,5 +1,5 @@
 
-FLAGS=-O3 -fstrict-aliasing -Wall -std=gnu99
+FLAGS=-O3 -fstrict-aliasing -Wall -std=gnu99 -mtune=native -march=native
 LIB_FLAGS= -ftree-vectorize -shared -fPIC #-Bsymbolic-functions -Wl,-z,now
 EXEC_FLAGS=-L./ -Wl,-rpath=./ #,-z,now
 
