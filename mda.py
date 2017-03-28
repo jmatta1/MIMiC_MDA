@@ -50,6 +50,7 @@ TEMP_PARAMS = {}
 execfile(sys.argv[1], TEMP_PARAMS)
 CONFIG = TEMP_PARAMS["CONFIG"]
 
+FLOAT_EPSILON = 1.0e-7
 PLOT_FORMAT_LIST = ["svg", "svgz", "pdf", "ps", "eps", "png"]
 
 
@@ -322,8 +323,10 @@ def make_param_plot(path, params, energy_set, l_value):
     -----------------
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
-        start. It uses the 'Float Epsilon', 'Plot Height', 'Plot Width', and
-        'Plot DPI' keys
+        start. It uses the 'Plot Height', 'Plot Width', and 'Plot DPI' keys
+
+    FLOAT_EPSILON : float
+        A very small value that is the threshold for "two float are the same"
 
     Returns
     -------
@@ -344,7 +347,7 @@ def make_param_plot(path, params, energy_set, l_value):
     # set the axis limits
     axes.set_xlim((pt_x_vals.min() - 1.0), (pt_x_vals.max() + 1.0))
     y_max = 1.2 * hi_vals.max()
-    if y_max < CONFIG["Float Epsilon"]:
+    if y_max < FLOAT_EPSILON:
         y_max = 0.01
     axes.set_ylim(0.0, y_max)
     # label the axes
@@ -1417,8 +1420,10 @@ def find_most_likely_values(samples, ndims):
     -----------------
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
-        start. It uses the 'Float Epsilon', 'Num Bins', and
-        'Confidence Interval'  keys
+        start. It uses the 'Num Bins' and 'Confidence Interval'  keys
+
+    FLOAT_EPSILON : float
+        A very small value that is the threshold for "two float are the same"
 
     Returns
     -------
@@ -1431,7 +1436,7 @@ def find_most_likely_values(samples, ndims):
     for i in range(ndims):
         # get a sorted list of the parameters
         values = np.sort(samples[:, i])
-        if CONFIG["Float Epsilon"] > abs(values[last_index] - values[0]):
+        if FLOAT_EPSILON > abs(values[last_index] - values[0]):
             # the max and min are the same then there is no need for more
             output.append((values[0], 0.0, 0.0))
             continue
