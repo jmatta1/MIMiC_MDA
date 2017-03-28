@@ -96,6 +96,8 @@ CONFIG["Maximum L"] = 7
 ###############################################################################
 #  Sampling and Concurrency Configuration
 ###############################################################################
+# holds the number of concurrent threads
+CONFIG["Number of Threads"] = 1
 # holds the number of points to sample for each walker, should be about 10
 # autocorrellation times, 1 auto correllation time is the time it takes for the
 # walkers for all parameters to drift into their designated sampling region
@@ -104,9 +106,23 @@ CONFIG["Sample Points"] = 8193
 CONFIG["Number of Walkers"] = 2048
 # Number of points at the beginning of the Markov Chain to discard as 'burn in'
 # should be one to two of the longest auto-correlation times
-CONFIG["Burn-in Points"] = 512
-# holds the number of concurrent threads
-CONFIG["Number of Threads"] = 1
+CONFIG["Burn-in Points"] = 300
+# Notes about sampling accuracy
+# the total number of used sample points can be calculated to be:
+# Samples = "Number of Walkers"*("Sample Points"-"Burn-in Points")
+# the estimate of the error in the sampled distribution can then be obtained by
+# looking the total number of independent samples of the distribution obtained.
+# The number of independent samples for each parameter is the used samples
+# divided by the autocorrelation time for that parameter
+# IndSampP_i = Samples / (Parameter AutoCorr Time)
+# We then take the minimum number of independent samples of the distribution
+# MinIndSamp = Minimum(IndSampP_0, IndSampP_1, IndSampP_2, ...)
+# and from this we can estimate the distribution error to be:
+# DistErr ~= 1/Sqrt(MinIndSamp)
+# Therefore, with a maximum autocorrelation of 256 and Samples = 16164864
+# we get a sampling error of 1/Sqrt(63144) ~= 0.4%
+# With a maximum autocorrelation of 256 and Samples = 2560000
+# we get a sampling error of 1/Sqrt(10000) ~= 1%
 
 
 ###############################################################################
