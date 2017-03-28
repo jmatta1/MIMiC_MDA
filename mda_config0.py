@@ -128,7 +128,10 @@ CONFIG["Num Bins"] = 1000
 # as equal values
 CONFIG["Float Epsilon"] = 1.0e-7
 
-# Auto correlation check parameters
+# Autocorrelation check parameters
+# holds if the autocorrelation time should be calculated, its nice to know,
+# but requires a lot of extra samples to know accurately
+CONFIG["Calc AutoCorr"] = True
 # holds the number of autocorrellation times required to estimate the
 # autocorrelation time of the chains
 # NOTES: a word of warning on this parameter, the autocorrellation time check
@@ -137,6 +140,8 @@ CONFIG["Float Epsilon"] = 1.0e-7
 # CONFIG["Sample Points"]/AC_WIND < (AC_WIND * Longest Autocorrelation Time)
 # it is best to do tests with single energies, or set the number of sample
 # points to a very large number to be certain
+# to state the condition above another way:
+# AC_WIND*AC_WIND > CONFIG["Sample Points"]/Longest Autocorrelation Time
 CONFIG["ACorr WindSize"] = 5.0
 # This parameter sets if the effective sample size for the autocorrelation time
 # calculation should be restricted to 2^n samples (where n is as large as,

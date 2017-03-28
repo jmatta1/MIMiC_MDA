@@ -181,10 +181,12 @@ def initialize_mda():
     generate_output_dirs()
     mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print MDA_START_MSG.format(CONFIG["Number of Threads"])
-    parameters = mp_pool.map(fit_and_mcmc, interleaved_data)
+    fitted_data = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    # parameters = map(fit_and_mcmc, interleaved_data)
+    # fitted_data = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
+    parameters = [dat[0] for dat in fitted_data]
+    diag_data = [dat[1] for dat in fitted_data]
     print "Writing fit files"
     write_fits(plot_data, dists, parameters, ivgdr_info)
     # make the fit plots
@@ -197,6 +199,7 @@ def initialize_mda():
     # write the parameter plots
     print "Writing parameter plots"
     write_param_plots(parameters, energy_set)
+    # write the diagnostic information
     # and now we are completely done
     print "MDA and output complete"
 
@@ -1053,10 +1056,14 @@ def fit_and_mcmc(data_tuple):
     # perform the MCMC
     sampler.run_mcmc(starts, CONFIG["Sample Points"])
     print "Finished MCMC for", energy, "MeV"
+    
+    # now do the rest, all of which involves calculating things from samples
+    # or the things calculated from samples
+    ret_vals = perform_sample_manips(sampler, ndims, energy, cs_lib, struct)
     # delete the struct
     cs_lib.freeMdaStruct(struct)
-    # now do the rest, all of which involves calculating things from samples
-    return perform_sample_manips(sampler, ndims, energy)
+    # return our return values
+    return ret_vals
 
 
 def prepare_shared_object():
@@ -1110,7 +1117,7 @@ def prepare_shared_object():
     return cs_lib
 
 
-def perform_sample_manips(sampler, ndims, energy):
+def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
     """this function takes the mcmc sampler, grabs the chains from it, and
     generates plots and percentiles and most likely values from the sampled
     points
@@ -1125,6 +1132,13 @@ def perform_sample_manips(sampler, ndims, energy):
 
     energy : float
         the excitation energy that this mcmc was carried out for
+
+    cs_lib : ctypes.cdll.LoadLibrary object
+        This is the object representing the loaded dll containing the fast c
+        routines
+
+    struct : ctypes.c_void_ptr
+        Pointer to the struct for calculating chi^2 and liklihoods, etc
 
     Global Parameters
     -----------------
@@ -1200,8 +1214,56 @@ def perform_sample_manips(sampler, ndims, energy):
         fig.savefig(fig_file_name, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
+    acor_time = []
+    if CONFIG["Calc AutoCorr"]:
+        # calculate the autocorrelation time
+        print "Calculating the autocorrelation for", energy, "MeV"
+        acor_time = sampler.get_autocorr_time(c=CONFIG["ACorr WindSize"],
+                                              fast=CONFIG["ACorr Use FFT"])
+    # calculate the chi^2 for the percentile and peak best fits
+    print "Calculating fit chi^2 for", energy, "MeV"
+    chis = calculate_fit_chis(cs_lib, struct, values)
+    # calculate the average acceptance fraction of the mcmc, should be between
+    # 0.2 and 0.5
+    accept_frac = np.mean(sampler.acceptance_fraction)
     # return the point and the errors
-    return values
+    return (values, (acor_time, chis, accept_frac))
+
+
+def calculate_fit_chis(cs_lib, struct, values):
+    """This function takes the fitted values, percentile and peak, and
+    calculates the sum of squared residuals for those parameter sets
+
+    Parameters
+    ----------
+    cs_lib : ctypes.cdll.LoadLibrary object
+        This is the object representing the loaded dll containing the fast c
+        routines
+
+    struct : ctypes.c_void_ptr
+        Pointer to the struct for calculating chi^2 and liklihoods, etc
+
+    values : tuple of lists
+        Tuple of lists and parameter values for peak and percentile methods
+
+    Global Parameters
+    -----------------
+
+    Returns
+    -------
+    perc_chi : float
+        The chi^2 of the point with the parameter values calculated from the
+        percentiles of the distribution
+
+    peak_chi : float
+        The chi^2 of the point with the parameter values calculated from the
+        peaks of the distribution
+    """
+    params = np.array([param[0] for param in values[0]])
+    perc_chi = call_chi_sq(params, cs_lib, struct)
+    params = np.array([param[0] for param in values[1]])
+    peak_chi = call_chi_sq(params, cs_lib, struct)
+    return (perc_chi, peak_chi)
 
 
 def gen_time_series_plots(sampler, ndims, energy):
