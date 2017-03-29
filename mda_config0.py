@@ -49,8 +49,7 @@ CONFIG["EWSR Fractions"] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 CONFIG["Parameter Files Directory"] = "./fits1/"
 # path to the directory that will hold the distribution outputs
 CONFIG["Fits Csv Directory"] = "./fits1/fit_csv/"
-# directory to store triangle plots this is used by the seperate, make
-# triangles code due to how much memory this consumes
+# directory to store triangle plots this is used by the separate
 CONFIG["Corner Plots Directory"] = "./fits1/corner_plots/"
 # directory to store probability plots
 CONFIG["Prob Plots Directory"] = "./fits1/prob_plots/"
