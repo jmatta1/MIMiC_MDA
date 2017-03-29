@@ -2069,9 +2069,10 @@ def read_dist(energy, l_value):
         dwba angular distribution which is in the format (angle, dwba_cs)
     """
     # first construct the file name
-    dist_file_name = "{0:s}A{1:d}_Ex{2:4.2f}_L{3:02d}_T0_F{4:03d}.csv".format(
-        CONFIG["Distribution Directory"], CONFIG["Target A"], energy, l_value,
-        int(100.0*CONFIG["EWSR Fractions"][l_value]))
+    fmt_str = "A{0:d}_Ex{1:4.2f}_L{2:02d}_T0_F{3:03d}.csv"
+    ewsr_frac = int(100.0*CONFIG["EWSR Fractions"][l_value])
+    file_name = fmt_str.format(CONFIG["Target A"], energy, l_value, ewsr_frac)
+    dist_file_name = os.path.join(CONFIG["Distribution Directory"], file_name)
     dist_file = open(dist_file_name, 'r')
     output = []
     # iterate through the file
@@ -2199,10 +2200,10 @@ def read_ivgdr_dists(en_list):
         number of points in a distribution. The order of the arrays is
         identical to the ordering of energies in the passed en_list
     """
-    dist_file_names = \
-        ["{0:s}A{1:d}_Ex{2:4.2f}_L01_T1_F100.csv".format(
-            CONFIG["Distribution Directory"], CONFIG["Target A"], energy)
-         for energy in en_list]
+    file_names = ["A{0:d}_Ex{1:4.2f}_L01_T1_F100.csv".format(
+                  CONFIG["Target A"], energy) for energy in en_list]
+    dist_file_names = [os.path.join(CONFIG["Distribution Directory"], fname)
+                       for fname in file_names]
     dists_list = []
     for name in dist_file_names:
         dist_file = open(name, 'r')
