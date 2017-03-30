@@ -30,8 +30,10 @@ import sys
 import math
 import copy
 import emcee
-import corner
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import corner
 import numpy as np
 from scipy import interpolate
 from scipy import optimize
