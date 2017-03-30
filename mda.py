@@ -185,9 +185,9 @@ def initialize_mda():
     generate_output_dirs()
     mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print MDA_START_MSG.format(CONFIG["Number of Threads"])
-    fitted_data = mp_pool.map(fit_and_mcmc, interleaved_data)
+    # fitted_data = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    # fitted_data = map(fit_and_mcmc, interleaved_data)
+    fitted_data = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     parameters = [dat[0] for dat in fitted_data]
     diag_data = [dat[1] for dat in fitted_data]
@@ -1239,8 +1239,8 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
         np.savez_compressed(chain_file_name, sampler.chain)
         print "Done saving MCMC samples for", energy, "MeV"
     # extract the error bars
-    quantile_list = np.array([(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
-                              (0.5 + CONFIG["Confidence Interval"] / 2.0)])
+    quantile_list = [(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
+                     (0.5 + CONFIG["Confidence Interval"] / 2.0)]
     values = calc_param_values(samples, quantile_list, ndims)
     peak_vals = [param[0] for param in values[1]]
     # make the probability plots
@@ -1404,8 +1404,9 @@ def calc_param_values(samples, quantile_list, ndims):
         A list of the parameter values and their errors derived from finding
         the distribution peak
     """
+    percentile_list = [100.0*q for q in quantile_list]
     points = [(v[1], v[2]-v[1], v[1]-v[0]) for v in
-              zip(*np.percentile(samples, (100.0*quantile_list), axis=0))]
+              zip(*np.percentile(samples, percentile_list, axis=0))]
     peaks = find_most_likely_values(samples, ndims)
     return (points, peaks)
 
@@ -1496,8 +1497,8 @@ def make_prob_plots(samples, energy, peak_vals):
     ndims = len(samples[0])
     lbls = [r"$a_{{{0:d}}}$".format(i) for i in range(ndims)]
     ranges = [(-0.0001, (0.0001 + samples[:, i].max())) for i in range(ndims)]
-    quantile_list = np.array([(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
-                              (0.5 + CONFIG["Confidence Interval"] / 2.0)])
+    quantile_list = [(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
+                     (0.5 + CONFIG["Confidence Interval"] / 2.0)]
     fmt_str = "A{0:d}_prob_en_{1:05.2f}_a{2:02d}.{3:s}"
     for i in range(ndims):
         temp = samples[:, i]
