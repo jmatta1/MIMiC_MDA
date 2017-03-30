@@ -1632,9 +1632,9 @@ def randomize_position(gen, ndims):
     for i in range(ndims):
         if position[i] < 0.0:
             position[i] *= -1.0
-        elif position[i] < FLOAT_EPSILON:
+        if position[i] < FLOAT_EPSILON:
             position[i] = 0.001
-        elif position[i] > (1.0/CONFIG["EWSR Fractions"][i]):
+        if position[i] > (1.0/CONFIG["EWSR Fractions"][i]):
             position[i] = ((1.0/CONFIG["EWSR Fractions"][i]) - 0.001)
     return position
 
