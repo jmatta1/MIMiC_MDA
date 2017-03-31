@@ -2232,7 +2232,7 @@ def read_ivgdr_dists(en_list):
         identical to the ordering of energies in the passed en_list
     """
     fmt_str = "A{0:d}_Ex{1:4.2f}_L01_T1_F100.csv"
-    file_names = [fmt_str.format(CONFIG["Target A"], energy) 
+    file_names = [fmt_str.format(CONFIG["Target A"], energy)
                   for energy in en_list]
     dist_file_names = [os.path.join(CONFIG["Distribution Directory"], fname)
                        for fname in file_names]
