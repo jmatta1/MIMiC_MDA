@@ -1,5 +1,4 @@
 [MESSAGES CONTROL]
-disable=W0141
 disable=wrong-import-position
 
 [TYPECHECK]
