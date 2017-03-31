@@ -1213,7 +1213,7 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
         'Confidence Interval', 'Generate Corner Plots', 'Corner Plot Samples',
         'Corner Plots Directory', 'Plot Height', 'Plot Width', 'Plot DPI',
         'Corner Default Range', 'Calc AutoCorr', 'ACorr WindSize',
-        'ACorr Use FFT',  and 'Plot Format' keys
+        'ACorr Use FFT', 'Generate Walker Plots',  and 'Plot Format' keys
 
     Returns
     -------
@@ -1226,7 +1226,8 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
     # retrieve the samples
     num_samples = (CONFIG["Number of Walkers"] * (CONFIG["Sample Points"] -
                                                   CONFIG["Burn-in Points"]))
-    gen_time_series_plots(sampler, ndims, energy)
+    if CONFIG["Generate Walker Plots"]:
+        gen_time_series_plots(sampler, ndims, energy)
     # get a copy of the samples reshaped to all walkers merged together
     samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
         num_samples, ndims))
@@ -1770,7 +1771,8 @@ def generate_output_dirs():
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
         start. It uses the 'Corner Plots Directory', 'Prob Plots Directory',
-        'Chain Directory', and 'Parameter Files Directory' keys
+        'Chain Directory', 'Generate Walker Plots', and
+        'Parameter Files Directory' keys
 
     Returns
     -------
@@ -1796,8 +1798,9 @@ def generate_output_dirs():
     # test / create the directory for Parameter Plots
     make_config_param_plot_dirs()
     # test / create the main directory for time series plots
-    if not os.path.exists(CONFIG["Time Series Directory"]):
-        os.makedirs(CONFIG["Time Series Directory"])
+    if CONFIG["Generate Walker Plots"]:
+        if not os.path.exists(CONFIG["Time Series Directory"]):
+            os.makedirs(CONFIG["Time Series Directory"])
 
 
 def make_config_param_plot_dirs():

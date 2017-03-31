@@ -213,6 +213,9 @@ CONFIG["Corner Default Range"] = True
 CONFIG["Plot IVGDR in Fits"] = False
 # sets the max L the user wants to plot in the limited fit plot
 CONFIG["Fit Plot L Limit"] = 3
+# sets whether or not to write out walker plots
+# if chains are saved, walker plots could be generated at a later date
+CONFIG["Generate Walker Plots"] = True
 # Number of walkers to plot in the time series plots
 CONFIG["Walker Plot Count"] = 500
 
