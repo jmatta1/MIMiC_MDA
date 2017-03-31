@@ -185,9 +185,9 @@ def initialize_mda():
     generate_output_dirs()
     mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print MDA_START_MSG.format(CONFIG["Number of Threads"])
-    # fitted_data = mp_pool.map(fit_and_mcmc, interleaved_data)
+    fitted_data = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    fitted_data = map(fit_and_mcmc, interleaved_data)
+    # fitted_data = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     parameters = [dat[0] for dat in fitted_data]
     diag_data = [dat[1] for dat in fitted_data]
@@ -2231,8 +2231,9 @@ def read_ivgdr_dists(en_list):
         number of points in a distribution. The order of the arrays is
         identical to the ordering of energies in the passed en_list
     """
-    file_names = ["A{0:d}_Ex{1:4.2f}_L01_T1_F100.csv".format(
-                  CONFIG["Target A"], energy) for energy in en_list]
+    fmt_str = "A{0:d}_Ex{1:4.2f}_L01_T1_F100.csv"
+    file_names = [fmt_str.format(CONFIG["Target A"], energy) 
+                  for energy in en_list]
     dist_file_names = [os.path.join(CONFIG["Distribution Directory"], fname)
                        for fname in file_names]
     dists_list = []
