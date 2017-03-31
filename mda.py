@@ -1250,7 +1250,11 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
     values = calc_param_values(samples, quantile_list, ndims)
     peak_vals = [param[0] for param in values[1]]
     # make the probability plots
-    make_prob_plots(samples, energy, peak_vals)
+    if CONFIG["Generate Probability Plots"]:
+        print "Generating probability plots for", energy, "MeV"
+        make_prob_plots(samples, energy, peak_vals)
+    else:
+        print "Skipping probability plots for", energy, "MeV"
     # make the corner plot
     if CONFIG["Generate Corner Plots"]:
         print "Commencing corner plot creation for", energy, "MeV"
@@ -1293,6 +1297,8 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
         print "Calculating the autocorrelation for", energy, "MeV"
         acor_time = sampler.get_autocorr_time(c=CONFIG["ACorr WindSize"],
                                               fast=CONFIG["ACorr Use FFT"])
+    else:
+        print "Skipping calculation of the autocorrelation for", energy, "MeV"
     # calculate the chi^2 for the percentile and peak best fits
     print "Calculating fit chi^2 for", energy, "MeV"
     chis = calculate_fit_chis(cs_lib, struct, values)
@@ -1795,8 +1801,9 @@ def generate_output_dirs():
         if not os.path.exists(CONFIG["Corner Plots Directory"]):
             os.makedirs(CONFIG["Corner Plots Directory"])
     # test / create the directory for probability plots
-    if not os.path.exists(CONFIG["Prob Plots Directory"]):
-        os.makedirs(CONFIG["Prob Plots Directory"])
+    if CONFIG["Generate Probability Plots"]:
+        if not os.path.exists(CONFIG["Prob Plots Directory"]):
+            os.makedirs(CONFIG["Prob Plots Directory"])
     # test / create the directory for Markov Chains
     if CONFIG["Save Chain Data"]:
         if not os.path.exists(CONFIG["Chain Directory"]):
