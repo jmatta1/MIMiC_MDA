@@ -185,24 +185,33 @@ def initialize_mda():
     generate_output_dirs()
     mp_pool = multiprocessing.Pool(processes=CONFIG["Number of Threads"])
     print MDA_START_MSG.format(CONFIG["Number of Threads"])
-    # fitted_data = mp_pool.map(fit_and_mcmc, interleaved_data)
+    fitted_data = mp_pool.map(fit_and_mcmc, interleaved_data)
     # single threaded version for debugging
-    fitted_data = map(fit_and_mcmc, interleaved_data)
+    # fitted_data = map(fit_and_mcmc, interleaved_data)
     # write the individual fits to csv files
     parameters = [dat[0] for dat in fitted_data]
     diag_data = [dat[1] for dat in fitted_data]
-    print "Writing fit files"
-    write_fits(plot_data, dists, parameters, ivgdr_info)
+    if CONFIG["Generate Fit CSVs"]:
+        print "Writing fit files"
+        write_fits(plot_data, dists, parameters, ivgdr_info)
+    else:
+        print "Skipping fit files"
     # make the fit plots
-    print "Writing fit plots"
-    make_fit_plots(plot_data, dists, parameters, ivgdr_info)
+    if CONFIG["Generate Fit Plots"]:
+        print "Writing fit plots"
+        make_fit_plots(plot_data, dists, parameters, ivgdr_info)
+    else:
+        print "Skipping fit plots"
     # write the two parameter sets
     energy_set = [val[0] for val in exp_data]
     print "Writing parameter sets"
     write_param_sets(parameters, energy_set)
     # write the parameter plots
-    print "Writing parameter plots"
-    write_param_plots(parameters, energy_set)
+    if CONFIG["Generate Parameter Plots"]:
+        print "Writing parameter plots"
+        write_param_plots(parameters, energy_set)
+    else:
+        print "Skipping parameter plots"
     # write the diagnostic information
     print "Writing diagnostic information"
     write_diagnostic_csv(diag_data, exp_data)
@@ -1213,7 +1222,7 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
         'Confidence Interval', 'Generate Corner Plots', 'Corner Plot Samples',
         'Corner Plots Directory', 'Plot Height', 'Plot Width', 'Plot DPI',
         'Corner Default Range', 'Calc AutoCorr', 'ACorr WindSize',
-        'ACorr Use FFT',  and 'Plot Format' keys
+        'ACorr Use FFT', 'Generate Walker Plots',  and 'Plot Format' keys
 
     Returns
     -------
@@ -1226,10 +1235,11 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
     # retrieve the samples
     num_samples = (CONFIG["Number of Walkers"] * (CONFIG["Sample Points"] -
                                                   CONFIG["Burn-in Points"]))
-    gen_time_series_plots(sampler, ndims, energy)
-    # get a copy of the samples reshaped to all walkers merged together
-    samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
-        num_samples, ndims))
+    if CONFIG["Generate Walker Plots"]:
+        print "Making Time Series plots for", energy, "MeV"
+        gen_time_series_plots(sampler, ndims, energy)
+    else:
+        print "Skipping Time Series plots for", energy, "MeV"
     # save the samples to the disk in the sp
     if CONFIG["Save Chain Data"]:
         print "Saving MCMC samples for", energy, "MeV"
@@ -1238,13 +1248,22 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
         chain_file_name = os.path.join(CONFIG["Chain Directory"], base_name)
         np.savez_compressed(chain_file_name, sampler.chain)
         print "Done saving MCMC samples for", energy, "MeV"
+    # get a copy of the samples reshaped to all walkers merged together
+    print "Reshaping sample chain for", energy, "MeV"
+    samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
+        num_samples, ndims))
     # extract the error bars
+    print "Extracting parameter values for", energy, "MeV"
     quantile_list = [(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
                      (0.5 + CONFIG["Confidence Interval"] / 2.0)]
     values = calc_param_values(samples, quantile_list, ndims)
     peak_vals = [param[0] for param in values[1]]
     # make the probability plots
-    make_prob_plots(samples, energy, peak_vals)
+    if CONFIG["Generate Probability Plots"]:
+        print "Generating probability plots for", energy, "MeV"
+        make_prob_plots(samples, energy, peak_vals)
+    else:
+        print "Skipping probability plots for", energy, "MeV"
     # make the corner plot
     if CONFIG["Generate Corner Plots"]:
         print "Commencing corner plot creation for", energy, "MeV"
@@ -1279,12 +1298,16 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
         fig.savefig(fig_file_name, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
+    else:
+        print "Skipping corner plot creation for", energy, "MeV"
     acor_time = []
     if CONFIG["Calc AutoCorr"]:
         # calculate the autocorrelation time
         print "Calculating the autocorrelation for", energy, "MeV"
         acor_time = sampler.get_autocorr_time(c=CONFIG["ACorr WindSize"],
                                               fast=CONFIG["ACorr Use FFT"])
+    else:
+        print "Skipping calculation of the autocorrelation for", energy, "MeV"
     # calculate the chi^2 for the percentile and peak best fits
     print "Calculating fit chi^2 for", energy, "MeV"
     chis = calculate_fit_chis(cs_lib, struct, values)
@@ -1356,7 +1379,6 @@ def gen_time_series_plots(sampler, ndims, energy):
     Returns
     -------
     """
-    print "Making Time Series plots for", energy, "MeV"
     fmt_string = "tSeries_E{0:05.2f}_L{1:d}.{2:s}"
     xvals = np.arange(0, CONFIG["Sample Points"])
     samples = sampler.chain
@@ -1632,9 +1654,9 @@ def randomize_position(gen, ndims):
     for i in range(ndims):
         if position[i] < 0.0:
             position[i] *= -1.0
-        elif position[i] < FLOAT_EPSILON:
+        if position[i] < FLOAT_EPSILON:
             position[i] = 0.001
-        elif position[i] > (1.0/CONFIG["EWSR Fractions"][i]):
+        if position[i] > (1.0/CONFIG["EWSR Fractions"][i]):
             position[i] = ((1.0/CONFIG["EWSR Fractions"][i]) - 0.001)
     return position
 
@@ -1770,7 +1792,8 @@ def generate_output_dirs():
     CONFIG : dictionary
         This uses the CONFIG global dictionary that was read in at program
         start. It uses the 'Corner Plots Directory', 'Prob Plots Directory',
-        'Chain Directory', and 'Parameter Files Directory' keys
+        'Chain Directory', 'Generate Walker Plots', and
+        'Parameter Files Directory' keys
 
     Returns
     -------
@@ -1779,25 +1802,30 @@ def generate_output_dirs():
     if not os.path.exists(CONFIG["Parameter Files Directory"]):
         os.makedirs(CONFIG["Parameter Files Directory"])
     # test / create the directories for csv files with individial fits
-    make_config_fit_csv_dirs()
+    if CONFIG["Generate Fit CSVs"]:
+        make_config_fit_csv_dirs()
     # test / create the directories for fit plots
-    make_config_fit_plot_dirs()
+    if CONFIG["Generate Fit Plots"]:
+        make_config_fit_plot_dirs()
     # test / create the directory for corner plots
     if CONFIG["Generate Corner Plots"]:
         if not os.path.exists(CONFIG["Corner Plots Directory"]):
             os.makedirs(CONFIG["Corner Plots Directory"])
     # test / create the directory for probability plots
-    if not os.path.exists(CONFIG["Prob Plots Directory"]):
-        os.makedirs(CONFIG["Prob Plots Directory"])
+    if CONFIG["Generate Probability Plots"]:
+        if not os.path.exists(CONFIG["Prob Plots Directory"]):
+            os.makedirs(CONFIG["Prob Plots Directory"])
     # test / create the directory for Markov Chains
     if CONFIG["Save Chain Data"]:
         if not os.path.exists(CONFIG["Chain Directory"]):
             os.makedirs(CONFIG["Chain Directory"])
     # test / create the directory for Parameter Plots
-    make_config_param_plot_dirs()
+    if CONFIG["Generate Parameter Plots"]:
+        make_config_param_plot_dirs()
     # test / create the main directory for time series plots
-    if not os.path.exists(CONFIG["Time Series Directory"]):
-        os.makedirs(CONFIG["Time Series Directory"])
+    if CONFIG["Generate Walker Plots"]:
+        if not os.path.exists(CONFIG["Time Series Directory"]):
+            os.makedirs(CONFIG["Time Series Directory"])
 
 
 def make_config_param_plot_dirs():
@@ -2203,8 +2231,9 @@ def read_ivgdr_dists(en_list):
         number of points in a distribution. The order of the arrays is
         identical to the ordering of energies in the passed en_list
     """
-    file_names = ["A{0:d}_Ex{1:4.2f}_L01_T1_F100.csv".format(
-                  CONFIG["Target A"], energy) for energy in en_list]
+    fmt_str = "A{0:d}_Ex{1:4.2f}_L01_T1_F100.csv"
+    file_names = [fmt_str.format(CONFIG["Target A"], energy)
+                  for energy in en_list]
     dist_file_names = [os.path.join(CONFIG["Distribution Directory"], fname)
                        for fname in file_names]
     dists_list = []
