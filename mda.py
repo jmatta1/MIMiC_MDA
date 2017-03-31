@@ -1227,10 +1227,10 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
     num_samples = (CONFIG["Number of Walkers"] * (CONFIG["Sample Points"] -
                                                   CONFIG["Burn-in Points"]))
     if CONFIG["Generate Walker Plots"]:
+        print "Making Time Series plots for", energy, "MeV"
         gen_time_series_plots(sampler, ndims, energy)
-    # get a copy of the samples reshaped to all walkers merged together
-    samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
-        num_samples, ndims))
+    else:
+        print "Skipping Time Series plots for", energy, "MeV"
     # save the samples to the disk in the sp
     if CONFIG["Save Chain Data"]:
         print "Saving MCMC samples for", energy, "MeV"
@@ -1239,7 +1239,12 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
         chain_file_name = os.path.join(CONFIG["Chain Directory"], base_name)
         np.savez_compressed(chain_file_name, sampler.chain)
         print "Done saving MCMC samples for", energy, "MeV"
+    # get a copy of the samples reshaped to all walkers merged together
+    print "Reshaping sample chain for", energy, "MeV"
+    samples = sampler.chain[:, CONFIG["Burn-in Points"]:, :].reshape((
+        num_samples, ndims))
     # extract the error bars
+    print "Extracting parameter values for", energy, "MeV"
     quantile_list = [(0.5 - CONFIG["Confidence Interval"] / 2.0), 0.5,
                      (0.5 + CONFIG["Confidence Interval"] / 2.0)]
     values = calc_param_values(samples, quantile_list, ndims)
@@ -1280,6 +1285,8 @@ def perform_sample_manips(sampler, ndims, energy, cs_lib, struct):
         fig.savefig(fig_file_name, bbox_inches='tight', dpi=CONFIG["Plot DPI"])
         plt.close(fig)
         print "Done creating corner plot for", energy, "MeV"
+    else:
+        print "Skipping corner plot creation for", energy, "MeV"
     acor_time = []
     if CONFIG["Calc AutoCorr"]:
         # calculate the autocorrelation time
@@ -1357,7 +1364,6 @@ def gen_time_series_plots(sampler, ndims, energy):
     Returns
     -------
     """
-    print "Making Time Series plots for", energy, "MeV"
     fmt_string = "tSeries_E{0:05.2f}_L{1:d}.{2:s}"
     xvals = np.arange(0, CONFIG["Sample Points"])
     samples = sampler.chain
