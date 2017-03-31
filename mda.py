@@ -1793,9 +1793,11 @@ def generate_output_dirs():
     if not os.path.exists(CONFIG["Parameter Files Directory"]):
         os.makedirs(CONFIG["Parameter Files Directory"])
     # test / create the directories for csv files with individial fits
-    make_config_fit_csv_dirs()
+    if CONFIG["Generate Fit CSVs"]:
+        make_config_fit_csv_dirs()
     # test / create the directories for fit plots
-    make_config_fit_plot_dirs()
+    if CONFIG["Generate Fit Plots"]:
+        make_config_fit_plot_dirs()
     # test / create the directory for corner plots
     if CONFIG["Generate Corner Plots"]:
         if not os.path.exists(CONFIG["Corner Plots Directory"]):
@@ -1809,7 +1811,8 @@ def generate_output_dirs():
         if not os.path.exists(CONFIG["Chain Directory"]):
             os.makedirs(CONFIG["Chain Directory"])
     # test / create the directory for Parameter Plots
-    make_config_param_plot_dirs()
+    if CONFIG["Generate Parameter Plots"]:
+        make_config_param_plot_dirs()
     # test / create the main directory for time series plots
     if CONFIG["Generate Walker Plots"]:
         if not os.path.exists(CONFIG["Time Series Directory"]):
