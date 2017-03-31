@@ -191,18 +191,27 @@ def initialize_mda():
     # write the individual fits to csv files
     parameters = [dat[0] for dat in fitted_data]
     diag_data = [dat[1] for dat in fitted_data]
-    print "Writing fit files"
-    write_fits(plot_data, dists, parameters, ivgdr_info)
+    if CONFIG["Generate Fit CSVs"]:
+        print "Writing fit files"
+        write_fits(plot_data, dists, parameters, ivgdr_info)
+    else:
+        print "Skipping fit files"
     # make the fit plots
-    print "Writing fit plots"
-    make_fit_plots(plot_data, dists, parameters, ivgdr_info)
+    if CONFIG["Generate Fit Plots"]:
+        print "Writing fit plots"
+        make_fit_plots(plot_data, dists, parameters, ivgdr_info)
+    else:
+        print "Skipping fit plots"
     # write the two parameter sets
     energy_set = [val[0] for val in exp_data]
     print "Writing parameter sets"
     write_param_sets(parameters, energy_set)
     # write the parameter plots
-    print "Writing parameter plots"
-    write_param_plots(parameters, energy_set)
+    if CONFIG["Generate Parameter Plots"]:
+        print "Writing parameter plots"
+        write_param_plots(parameters, energy_set)
+    else:
+        print "Skipping parameter plots"
     # write the diagnostic information
     print "Writing diagnostic information"
     write_diagnostic_csv(diag_data, exp_data)
